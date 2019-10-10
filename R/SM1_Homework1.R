@@ -1,48 +1,14 @@
----
-title: "SM1"
-output:
-  html_document: 
-    toc: yes
-    toc_depth: 4
-    toc_float: yes
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## Linear Least Squares
-First of all, we need to get the data from the website. Since the data is hosted as a `.data` file, we can use `read.table()` function in base R to read that file into a dataframe. Notice that the last column in the dataframe is just a boolean variable flagging whether that particular sample was used to train the model at page 38 of the corresponding book.
-```{r}
 # Get data from the weblink
 library(readr)
 url <- "https://web.stanford.edu/~hastie/ElemStatLearn/datasets/prostate.data"
 df <- read.table(url)[1:9]
-head(df, 3)
-```
-We will use the columns `lcavol`, `lweight`, `age`, `lbph`, `svi`, `lcp`, `gleason` and `pgg45` as explanatory variables, while `lpsa` will be our target variable. We can therefore divide the data into two dataframes:
-```{r}
+
 # Recall X must have a feature in each row and an observation in each column
 X <- t(as.matrix(df[1:8]))  # (d+1) * n
 # We add an extra row of 1s for the bias
 X <- rbind(X, rep(1, dim(X)[2]))
 y <- t(as.vector(df$lpsa)) # 1 * n
-```
-Recall that in lectures the solution to linear regression least squares was given by
-$${\bf{w}}_{LS} = (X X^\top)^{-1}X{\bf{y}}^\top$$
-where $y=(y_1, \ldots, y_n)\in \mathbb{R}^{1\times n}$ is a **row vector** and $n$ is the number of observations. The matrix $X\in\mathbb{R}^{(d+1)\times n}$ is of the form 
-$$
-X = 
-\begin{bmatrix}
- {\bf{x}}_1 & {\bf{x}}_2 & \ldots & {\bf{x}}_n\\ 
- 1 & 1 & \ldots & 1
-\end{bmatrix}
-$$
-where ${\bf{x}}_i \in \mathbb{R}^{d\times 1}$ are **column vectors**.
-Notice that ${\bf{w}}_{LS}$ can be found by solving the linear system of equations 
-$$A{\bf{w}}_{LS} = {\bf{b}}$$
-where $A = XX^\top$ and ${\bf{b}} = X{\bf{y}}^\top$. Using this trick we can write a function that returns the solution to the least squares
-```{r}
+
 least_squares <- function(X, y){
   # X must have dim (d+1)*n where d = number of features, and n = number of observations
   # y must be a row vector of dim 1*n
@@ -50,13 +16,7 @@ least_squares <- function(X, y){
   b <- X%*%t(y)
   return(solve(A, b))
 }
-```
-In this particular case we obtain
-```{r}
-least_squares(X, y)
-```
-Then we can evaluate $f({\bf{x}}, {\bf{w}}_{LS})$, our fitted solution as follows
-```{r}
+
 linear_ls <- function(x, w){
   # This function simply implements the linear version of f(x, w) = w^t * x
   # w will be returned as a column vector from least_squares().
@@ -69,19 +29,7 @@ linear_ls <- function(x, w){
   }
   return(x%*%w)
 }
-```
-This function then can be used as follows
 
-```{r}
-# Use 1:9 as a new observation
-linear_ls(1:dim(X)[1], least_squares(X, y))
-```
-## Cross Validation
-The following function `cv` implements k-fold Cross Validation. It works by first stacking together `X` and `y` to create a new dataframe called `xy` that has dimension `n` times `d+2` (it is `d+2` rather than `d+1` because of the extra `y` column.). Next, the function shuffles the rows of the dataframe using the `sample()` function. 
-
-At this point, we can use the `cut()` function to create flags that signal to which of the `k` groups each row of the dataframe belongs to. After this, we go through a loop where we perform least squares on all the data except the current group of rows, and we test the result exactly on that hold-out group. 
-
-```{r}
 # for testing purposes let's set a seed
 cv <- function(X, y, k){
   # K-fold cross validation. For leave-one-out set k to num of observations.
@@ -118,19 +66,7 @@ cv <- function(X, y, k){
   # Finally return the average error
   return(mean(errors))
 }
-```
-We can try this function using $10$ fold cross validation
-```{r}
-cv(X, y, 10)
-```
-and even **leave-one-out** cross validation
-```{r}
-cv(X, y, dim(X)[2])
-```
 
-## Removing Features
-We can evaluate leave-one-out cross validation on the dataset where one feature has been removed each time. The code would look similar to
-```{r}
 # There's dim(X)[1] features if we count also the bias feature
 errors <- rep(0, dim(X)[1])
 # Remove one feature at a time
@@ -138,12 +74,12 @@ for (i in 1:dim(X)[1]){
   X <- X[-i, ]
   errors[i] <- cv(X, y, dim(X)[2])
 }
-errors
-```
-The error increases because we are missing information about one of the features. We can plot the errors as follows
-```{r}
+
+# Plot errors and save it as a PNG file
+png(filename="output/SM1_HW1.png")
 plot(1:length(errors), errors, xlab="Features", xaxt = "n", main="CV errors with feature dropping", ylab="CV errors")
 labels <- names(df[1:8])
 labels[9] <- "bias"
 axis(1, at=1:length(errors), labels=labels)
-```
+# Save the plot
+dev.off()
