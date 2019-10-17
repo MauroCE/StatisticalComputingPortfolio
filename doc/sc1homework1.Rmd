@@ -147,3 +147,149 @@ labels <- names(df[1:8])
 labels[9] <- "bias"
 axis(1, at=1:length(errors), labels=labels)
 ```
+
+## Homework 2
+We want to generate points 
+$$y_i = \exp(1.5x_i - 1) + \epsilon_i \qquad \text{where } \epsilon_i \sim N(0, 0.64) \quad \text{for } i = 1, \ldots, 200$$
+Notice that we can sample from a normal distribution using the `rnorm()` function. We can then generate the `x_i` uniformly between `0` and `1`. 
+```{r}
+# Generato 200 samples from a N(0, 0.64)
+e <- rnorm(n=200, mean=0, sd=0.8)
+# Generate uniform x_i in [0, 1]
+x <- runif(n=200, min=0, max=1)
+# Calculate y_i
+y <- t(exp(1.5*x - 1) + e)
+# we need to generate the correct matrix with 1s at the end
+x <- rbind(t(as.matrix(x)), rep(1, length(x)))
+```
+Now we re-write the least-squares algorithm so that it uses regularization.
+```{r}
+reg_ls <- function(X, y, lambda=0){
+  # X has to be (n features, n obs). y has to be (1, n obs)
+  X <- as.matrix(X)
+  y <- as.matrix(y)
+  # Use solve to find the solution, rather than inverting the matrix
+  A <- X%*%t(X) + diag(lambda, nrow=nrow(X), ncol=nrow(X))
+  b <- X%*%t(y)
+  # Notice that it defaults to lambda=0 so this function can also be used for "unregularized ls".
+  return(solve(A, b))
+}
+```
+We can check this is the same by comparing the output of the previous least squares function
+```{r}
+ls_value <- least_squares(x, y)
+rls_value <- reg_ls(x, y)
+ls_value == rls_value
+```
+
+At this point we want to re-implement cross-validation in a more general way. Now it uses regularized least squares and takes lambda as a parameter so that cv can now be used to find the optimal regularization parameter.
+
+```{r}
+library(parallel)
+library(MASS)
+library(latex2exp)
+
+cv_parallel <- function(X, y, k, lambda=0){
+  # K-fold cross validation. For leave-one-out set k to num of observations.
+  # X should be a (d+1)*n matrix with d = num of features, n = numb of samples.
+  # y should be 1*n target vector.
+  # Create a vector where errors will be stored. Length will be k
+  errors <- rep(0, k)
+  # First stack together X and y. y will be last row of X. Then transpose.
+  xy <- t(rbind(X, y))
+  # shuffle the rows
+  xyshuffled <- xy[sample(nrow(xy)), ]
+  # Create flags for the rows of xyshuffled to be divided into k folds
+  folds <- cut(seq(1, nrow(xyshuffled)), breaks=k, labels=FALSE)
+  # Go through each fold and calculate train and test stuff
+  for(i in 1:k){
+    # Find indeces of rows in the hold-out (test) group
+    test_ind <- which(folds==i, arr.ind=TRUE)
+    # Use such indeces to grab test data
+    test_x <- xyshuffled[test_ind, -dim(xyshuffled)[2]]
+    test_y <- xyshuffled[test_ind, dim(xyshuffled)[2]]
+    # Use the remaining indeces to grab training data
+    train_x <- xyshuffled[-test_ind, -dim(xyshuffled)[2]]
+    train_y <- xyshuffled[-test_ind, dim(xyshuffled)[2]]
+    # Now use train_x and train_y data to find the parameters. Recall that we want them
+    # with num of observations as the second dimension
+    w <- reg_ls(t(train_x), t(train_y), lambda=lambda)
+    # Now use these parameters to find the fitted value for the current test data
+    f <- linear_ls(test_x, w)
+    # Now compare the function value with test_y with a suitable error function.
+    e <- sum((f - test_y)^2)
+    # Add error to error list
+    errors[i] <- e
+  }
+  # Finally return the average error
+  return(mean(errors))
+}
+
+```
+
+Now we instantiate a set of lambdas and parallelize the operation to find the best lambda among those. 
+
+
+```{r}
+# Define a wrapper function with only one input parameter.
+wrapper <- function(lambda){
+  return(cv_parallel(x, y, k=ncol(y), lambda=lambda))
+}
+# Now create a list containing all the lambda configurations
+params = 10^seq(from=-3, to=1, by=0.0625)
+# Finally we parallelize everything
+meanerrors <- mclapply(params, wrapper, mc.cores=2)
+# Plot the result (requires install.packages("latex2exp"))
+plot(log(params, 10), meanerrors, xlab=TeX('$\\log_{10}(\\lambda)$'), ylab=TeX('CV Error'), main=TeX('Change in CV Error due to regularization parameter'))
+# Find the minimum 
+min_index <- which.min(unlist(meanerrors))
+points(log(params, 10)[min_index], meanerrors[min_index], col='red', pch=19)
+legend(x='topleft', legend=c("Minimum CV Error"), col=c('red'), bg='white', lwd=1)
+```
+
+The minimum CV error is shown as a red point in the plot and corresponds to 
+```{r}
+params[min_index]
+```
+
+By using an optimization routine we can indeed see that this value is very close to the optimal one, which can be found like this
+
+```{r}
+sol <- optimize(wrapper, params)
+sol$minimum
+```
+
+At this point we plot the predictive distribution. To do so, we write a wrapper function for the normal distribution, since the mean and the variance are fairly complicated functions
+
+```{r}
+predictive <- function(xhat, X, y, sigmasq, lambda=sol$minimum){
+  # First find the mean. This is given by the prediction by the regularized least squares. In our case, we need to find 
+  # W_LS-R with the current optimal value of lambda. To find it, we need to solve a system of linear equations
+  X  <-  as.matrix(X)
+  y <-  as.matrix(y)
+  A <-  X%*%t(X) + diag(lambda, nrow=nrow(X), ncol=nrow(X))
+  b <-  X%*%t(y)
+  w_lsr <- solve(A, b)
+  # notice xhat must be 2x1
+  mean <- t(w_lsr)%*%xhat  
+  # Next, find the variance
+  variance <- sigmasq + sigmasq*((t(xhat)%*%solve(A))%*%xhat)
+  return(c(mean, variance))
+}
+```
+
+Obtain mean and variance for the predictive distribution
+
+```{r}
+xhat <- matrix(c(0.1, 1), 2, 1)
+sigmasq <- 0.1
+pred_params <- predictive(xhat, x, y, sigmasq)
+```
+
+and finally we can plot the mean of the predictive distribution as $\widehat{{\bf{x}}}$ changes.
+
+```{r}
+
+```
+
+

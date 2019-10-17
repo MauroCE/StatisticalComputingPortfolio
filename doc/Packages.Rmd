@@ -12,8 +12,312 @@ bibliography: bibliography.bib
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Installing Devtools
+I tried installing `devtools` using `install.packages("devtools")` on the console, but didn't work. It failed with the following error message
+
+`ERROR: dependencies ‘usethis’, ‘covr’, ‘httr’, ‘roxygen2’, ‘rversions’ are not available for package ‘devtools’`
+`* removing ‘/home/za19162/R/x86_64-pc-linux-gnu-library/3.6/devtools’`
+
+Then I went to the terminal and did a `sudo apt-get update`. After this,  I typed `apt-get -y build-dep libcur14-gnutls-dev` but got the following error 
+
+`E: Could not open lock file /var/lib/dpkg/lock-frontend - open (13: Permission denied)
+`
+`E: Unable to acquire the dpkg frontend lock (/var/lib/dpkg/lock-frontend), are you root?
+`
+
+So then I thought maybe it was because my terminal was in the Rproject root directory. So I closed the terminal and opened it again, but got the same error. So I read the comment found [here](https://stackoverflow.com/q/20923209/6435921) and decided to try and install `curl-dev` or `curl-devel`. So I typed `install.packages("curl-dev")` but it gave me the following error
 
 
-## Bibliography
+so I tried `install.packages("curl-devel")` and same error occurred. So I googled this error and found out [here](https://stackoverflow.com/a/52769000/6435921)
+that I might need to install the following on the terminal
 
+`sudo apt-get install libcurl4-openssl-dev r-base`
+
+I did it and obtained the following (cropped) output
+
+`libcurl4-openssl-dev is already the newest version (7.58.0-2ubuntu3.8).`
+`r-base is already the newest version (3.6.1-3bionic).`
+
+Following the same answer, I then typed the following into the terminal
+
+`R -q -e "install.packages(c('curl'))"`
+
+which successfully installed the package. I tried again `install.packages("devtools")` in the console but it didn't work. Scrolling up the error I found
+
+```
+------------------------- ANTICONF ERROR ---------------------------
+Configuration failed because libxml-2.0 was not found. Try installing:
+ * deb: libxml2-dev (Debian, Ubuntu, etc)
+ * rpm: libxml2-devel (Fedora, CentOS, RHEL)
+ * csw: libxml2_dev (Solaris)
+If libxml-2.0 is already installed, check that 'pkg-config' is in your
+PATH and PKG_CONFIG_PATH contains a libxml-2.0.pc file. If pkg-config
+is unavailable you can set INCLUDE_DIR and LIB_DIR manually via:
+R CMD INSTALL --configure-vars='INCLUDE_DIR=... LIB_DIR=...'
+--------------------------------------------------------------------
+```
+So I decided to try and install `libxml2-dev`. I found out online that to install that on ubuntu I would need 
+
+`sudo apt-get install libxml2-dev`
+
+So I typed that into the terminal. This successfully installed the package. Then I tried again to install `devtools` using the `install.packages("devtools")`. It failed again giving this error at the top (again, you need to scroll):
+
+```
+------------------------- ANTICONF ERROR ---------------------------
+Configuration failed because openssl was not found. Try installing:
+ * deb: libssl-dev (Debian, Ubuntu, etc)
+ * rpm: openssl-devel (Fedora, CentOS, RHEL)
+ * csw: libssl_dev (Solaris)
+ * brew: openssl@1.1 (Mac OSX)
+If openssl is already installed, check that 'pkg-config' is in your
+PATH and PKG_CONFIG_PATH contains a openssl.pc file. If pkg-config
+is unavailable you can set INCLUDE_DIR and LIB_DIR manually via:
+R CMD INSTALL --configure-vars='INCLUDE_DIR=... LIB_DIR=...'
+--------------------------------------------------------------------
+```
+So I went into the command line and typed 
+
+`sudo apt-get install libssl-dev`
+
+This seemed to work. So then I tried to install `devtools` again, using the usual command. This time seems to work, with the last few lines being:
+
+```
+* installing *source* package ‘devtools’ ...
+** package ‘devtools’ successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (devtools)
+
+The downloaded source packages are in
+	‘/tmp/RtmpqrWTdY/downloaded_packages’
+```
+
+## Summary for Installing Devtools
+
+ * Update `apt`: `sudo apt-get update`
+ * Install (if not already present, which is likely) `libcurl`: `sudo apt-get install libcurl4-openssl-dev r-base` and then `R -q -e "install.packages(c('curl'))"`
+ * Install `libxml2-dev` using `sudo apt-get install libxml2-dev`.
+ * Install `libssl` using `sudo apt-get install libssl-dev`
+ * Go to RStudio console and type `install.packages("devtools")`
+ * Install `roxygen2` by typing in the console `install.packages("roxygen2")`.
+
+## Creating a Package
+Open `RStudio`. Click on
+
+```
+File -> New Project -> New Directory -> R Package
+```
+
+I've given the package the name `compass` and I've ticked `Create a git repository`. RStudio opens with a `hello.R` file.
+Next, I wanted to set some global options. So I followed the `devtools` [documentation](https://cran.r-project.org/web/packages/devtools/devtools.pdf). In that PDF file I searched for `devtools.desc.author`, which told me to use this parameter with a `utils::as.person()`. So I went to the [documentation](https://www.rdocumentation.org/packages/utils/versions/3.6.1/topics/person) for the `as.person()` function. Then went back to the console and typed
+
+```
+mauro <- person(given="Mauro", family="Camara Escudero", email="maurocamaraescudero@gmail.com")
+```
+
+then in the console I wrote `devtools.desc.author = mauro`. Then I opened the `DESCRIPTION` file and edited the author as described [here](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#The-DESCRIPTION-file). Basically I changed the `title`, the `author`, I added a field called `Author@R` , edited `Maintainer`, `Description`. Then modified `Licence` according to [here](http://r-pkgs.had.co.nz/description.html). Basically my DESCRIPTION file then became:
+
+```
+Package: compass
+Type: Package
+Title: A Compass package for orientation
+Version: 0.1.0
+Authors@R: person("Mauro", "Camara Escudero", email = "maurocamaraescudero@gmail.com",
+  role = c("aut", "cre"))
+Author: Mauro Camara Escudero [aut, cre]
+Maintainer: Mauro Camara Escudero <maurocamaraescudero@gmail.com>
+Description: Not sure what this package does just yet, but hopefully
+	will be something exciting!
+License: MIT
+Encoding: UTF-8
+LazyData: true
+```
+
+Then I opened Atom, pasted the MIT license text given [here](https://tldrlegal.com/license/mit-license#fulltext) which is
+
+```
+MIT License
+
+Copyright (c) 2019 Mauro Camara Escudero
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+and then saved it as `LICENSE.md` in the Package directory. Next, we need to add this to the `.Rbuildignore` file. So now the `.Rbuildignore` file looks like this
+
+```
+^.*\.Rproj$
+^\.Rproj\.user$
+LICENSE.md
+```
+
+## Correct Licensing
+Looking at Anthony Lee's example package I've changed DESCRIPTION file to have `MIT + file LICENSE` rather than just `MIT`.  Then changed the `LICENSE.md` file to 
+
+```
+# MIT License
+
+Copyright (c) 2019 Mauro Camara Escudero
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+and finally added a `LICENCE` file with the following
+
+```
+YEAR: 2019
+COPYRIGHT HOLDER: Mauro Camara Escudero
+```
+## Adding License to Rbuildignore
+Actually, I've added the following, following Anthony Lee's Rbuildignore
+
+```
+^LICENSE\.md$
+```
+
+## Populating the Package
+ I installed the `testthat` package using `install.packages("testthat")`. Next I installed the `covr` package using `install.packages("covr")`.
+
+## Packages done well
+### Why Packages?
+ 
+ * Code can be easily shared with collaborators.
+ * Packaged code will be easier to use by others.
+ * Saving time, thanks to conventions.
+
+### Components of a Package
+
+* `.Rbuildignore` : Files needed but not used when building the package.
+* `.Rproj.user`: Used by RStudio.
+* `DESCRIPTION`: Package metadata.
+* `NAMESPACE`: Functions that the package exports & functions imported from other packages.
+* `R/`: Rscripts containing package functions.
+* `compass.Rproj`: This file makes the directory an RStudio project.
+
+### Devtools & RStudio tricks
+
+* `load_all()` can be used to simulate building, installing and attaching a package. This way you can work interactively. In the Environment/History/Connections tab you'll find it under the `Build`. Click `more` and then `Load All`. 
+* `check()` can be used to check that everything is okay with the package. Should be used often. This can also be found in the `Build` tab in Rstudio. It will be called `Check`.
+* Can use `CTRL` + `.` and type `DESCRIPTION` to open the DESCRIPTION file in RStudio.
+
+### How to properly add a LICENSE file
+Simply use the helper function `use_mit_license("Mauro Camara Escudero")` in the console. This function does all these things at once:
+
+* Setting License field in DESCRIPTION to 'MIT + file LICENSE'
+* Writing 'LICENSE.md'
+* Adding '^LICENSE\\.md$' to '.Rbuildignore'
+* Writing 'LICENSE'
+
+
+### Documenting code with Roxygen2
+Go into the `.R` script that you want to document. Put the cursor somewhere in the function definition. In RStudio go to 
+
+```
+Code > Insert roxygen skeleton
+```
+
+and this will add some comments above the function definition. To create a draft documentation simply run `document()` from the `devtools` package, or use it from the `Build` tab. Notice that sometimes it is not available in the `Build` tab. In such cases, go to `Build` tab, then `more` and click on `configure build tools`. There you will be able to let RStudio know that you want to build documentation using `roxygen`.
+
+
+### NAMESPACE file
+My current namespace file looked like this:
+
+```
+exportPattern("^[[:alpha:]]+")
+```
+
+But since it was not created with `roxygen` it cannot be modified by it. Therefore, I deleted it. Since I had already used `roxygen` I also deleted the `hello.Rd` file in the `man` directory in the package folder. Then you can run `document()` again.
+
+### Installing the package
+To install the package simply run `install()` in the console.
+
+### Attaching the package
+Before attaching, close RStudio and restart it to have a clear workspace. Then type `library(compass)` into the console. You'll notice that now you can use `hello()` and it will print "Hello, world!".
+
+### Using TestThat to test functions
+Type `use_testthat()` in the console. Next, use the function `use_test("hello")` to create the test file. I've then changed the newly-created test file called `test-hello.R` as follows:
+
+```
+test_that("prints the correct text", {
+  expect_equal(hello(), "Hello, world!")
+})
+```
+
+then, I load the `testthat` package using `library(testthat)` and by loading the package using `load_all()`. To test simply run `test()` in the console. 
+
+### Importing external function
+I've created a file called `tilt_head()` which uses the `head()` function. In order to import such function correctly type `use_package("utils")` into the console. Next, I went into the file, and wherever I had to use `head()` I replaced it with `utils::head()`. If `check()` doesn't work now, be sure to use `load_all()`.
+
+### Adding a README file
+Simply use `use_readme_rmd()` and it will create both the `README.md` and the `README.Rmd` to edit the readme in RMarkdown.
+
+### Travis
+Go on [travis dot com](https://travis-ci.com/account/repositories) and sign in with GitHub. Then add a file called `.travis.yml` to the package directory with the following text
+
+```
+language: r
+dist: xenial
+cache: packages
+branches:
+  only:
+    - master
+
+r_github_packages:
+  - r-lib/covr
+
+after_success:
+  - Rscript -e 'covr::codecov()'
+```
+
+After this, commit. From the next commit onwards travis will start building and testing your code. Notice that to add the travis build status you need to go to the travis website, then click on "build|unknown" and select "Markdown" to obtain
+
+```
+[![Build Status](https://travis-ci.com/MauroCE/compass.svg?branch=master)](https://travis-ci.com/MauroCE/compass)
+```
+
+Next simply add the following to the readme to add the code coverage badge
+
+```
+[![codecov](https://codecov.io/gh/MauroCE/compass/branch/master/graph/badge.svg)](https://codecov.io/gh/MauroCE/compass)
+```
