@@ -9,6 +9,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Vectorization
 
+
+
+
 ## Apply, Map, Reduce, Filter
 
 ## Parallel Computing
@@ -19,11 +22,23 @@ Notice that we can sample from a normal distribution using the `rnorm()` functio
 # Generato 200 samples from a N(0, 0.64)
 e <- rnorm(n=200, mean=0, sd=0.8)
 # Generate uniform x_i in [0, 1]
-x <- runif(n=200, min=0, max=1)
+xunif <- runif(n=200, min=0, max=1)
+
+phi <- function(xunif, identity=FALSE){
+  xunif <- as.vector(xunif)
+  # this function can transform the input into a polynomial or keep it as it is with an identity function
+  if (identity==TRUE){
+    return(xunif)
+  } else {
+    return(xunif+xunif^2)
+  }
+}
+xunift <- phi(xunif)
 # Calculate y_i
-y <- t(exp(1.5*x - 1) + e)
+y <- t(exp(1.5*xunif - 1) + e)
 # we need to generate the correct matrix with 1s at the end
-x <- rbind(t(as.matrix(x)), rep(1, length(x)))
+x <- rbind(t(as.matrix(xunift)), rep(1, length(xunift)))
+
 ```
 Now we re-write the least-squares algorithm so that it uses regularization.
 ```{r}
@@ -49,7 +64,7 @@ linear_ls <- function(x, w){
   w <- as.matrix(w)
   # Want this function to do both matrix multiplication and dot product,
   # so check for dimension and if necessary transpose
-  if ((dim(x)[2] == 1) && (dim(x)[2] != dim(w)[1])) {
+  if (dim(x)[2] != dim(w)[1]) {
     x <- t(x)
   }
   return(x%*%w)
@@ -110,7 +125,7 @@ wrapper <- function(lambda){
   return(cv_parallel(x, y, k=ncol(y), lambda=lambda))
 }
 # Now create a list containing all the lambda configurations
-params = 10^seq(from=-3, to=1, by=0.0625)
+params = 10^seq(from=-3, to=1.5, by=0.0625)
 # Finally we parallelize everything
 meanerrors <- mclapply(params, wrapper, mc.cores=2)
 # Plot the result (requires install.packages("latex2exp"))
@@ -118,7 +133,7 @@ plot(log(params, 10), meanerrors, xlab=TeX('$\\log_{10}(\\lambda)$'), ylab=TeX('
 # Find the minimum 
 min_index <- which.min(unlist(meanerrors))
 points(log(params, 10)[min_index], meanerrors[min_index], col='red', pch=19)
-legend(x='topleft', legend=c("Minimum CV Error"), col=c('red'), bg='white', lwd=1)
+legend(x='left', legend=c("Minimum CV Error"), col=c('red'), bg='white', lwd=1)
 ```
 
 The minimum CV error is shown as a red point in the plot and corresponds to 
@@ -152,19 +167,29 @@ predictive <- function(xhat, X, y, sigmasq, lambda=sol$minimum){
 }
 ```
 
-Obtain mean and variance for the predictive distribution
+We can plot this normal distribution as follows
 
 ```{r}
-xhat <- matrix(c(0.1, 1), 2, 1)
+# Choose a sigma squared
 sigmasq <- 0.1
-pred_params <- predictive(xhat, x, y, sigmasq)
+# Generate a new data point to predict for
+xhat <- matrix(c(0.1, 1), 2, 1)
+# Now find mean and variance of the predictive distribution for this data point.
+meanandvar <- predictive(xhat, x, y, sigmasq)
+# Use the xunif data points to plot the normal distribution with such mean and variance
+xplot <- seq(-0.5, 1.5, 0.025)
+plot(xplot, dnorm(xplot, mean=meanandvar[1], sd=sqrt(meanandvar[2])), main="Predictive Distribution and True Value", ylab=TeX('$p(y)$'), xlab=TeX('$y$'))
+# Plot the actual value of y
+abline(v=exp(1.5*0.1-1), col='red', lty=2)
+legend(x='topleft', legend=c("True Value"), col=c('red'), bg='white', lwd=1, lty=2)
 ```
+
 
 and finally we can plot the mean of the predictive distribution as $\widehat{{\bf{x}}}$ changes.
 
 ```{r}
-# Create a tons of xs
-xhats <- seq(-10,10,0.25)
+library(ggplot2)
+library(reshape2)
 # wrapper function to parallelize
 wrapper2 <- function(xhat){
   # recall this will be row, but need column
@@ -172,14 +197,23 @@ wrapper2 <- function(xhat){
   return(predictive(xhat, x, y, sigmasq))
 }
 # run this parallely
-result <- unlist(mclapply(xhats, wrapper2, mc.cores=2))
-# plot the means
+result <- unlist(mclapply(xunift, wrapper2, mc.cores=2))
+# Get the means and the standard deviations
 means <- result[seq(1, length(result), 2)]
-# plot the means
-plot(xhats, means)
+sds <- sqrt(result[seq(2, length(result), 2)])
+# actually create a data frame with upper and lower bounds
+df <- data.frame(x=xunif, m=means, lwbd=means-sds, upbd=means+sds, real=exp(1.5*xunif-1), pts=t(y))
+# try melting it, might be useful later
+melted <- melt(df[, -c(3, 4, 6)], id.vars="x")  # do not include upper and lower bounds, nor the points
+
+# try plotting the melted data frame
+ggplot() + 
+  geom_ribbon(data=df, aes(x=x, ymin=lwbd, ymax=upbd), fill="grey70") + 
+  geom_line(data=melted, aes(x=x, y=value, color=variable, group=variable), size=1) + 
+  geom_point(data=df, aes(x=x, y=pts, color='green')) + 
+  scale_color_manual(values=c('darkgreen', 'red', 'black'), labels=c('data', 'pred', 'true')) + 
+  scale_size_manual(values=c(2, 3, 3)) + 
+  ggtitle("Predictions, True values, Confidence Band and Data Points") +
+  theme(plot.title=element_text(hjust=0.5))
 
 ```
-
-
-maybe just multiply w_lsr with the x's in the dataset.
-
