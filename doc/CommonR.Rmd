@@ -8,11 +8,137 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Vectorization
+As a general rule of thumb, we want to avoid writing for-loops as much as possible, and instead _vectorize_ operations to speed up our calculations. For example suppose that we want to calculate 
+$$\sum_{i=1}^n\cos(i) \times \sin(i) \times \tan(i) - \cos(i)^2-\sin(i)^3$$
+
+At first one could write a function similar to this:
+
+```{r}
+myfunc <- function(n){
+  total = 0
+  for (i in 1:n){
+    total = total + cos(i)*sin(i)*tan(i) - cos(i)^2 - sin(i)^3
+  }
+  return(total)
+}
+```
+ We can see see how long a function takes to run in R by using the `system.time()` function and look at the `elapsed` time:
+ 
+```{r}
+m <- 1000000
+system.time(myfunc(m))
+```
+
+However this operation can be sped up by doing the same operation on each element of a vector, as follows
+
+```{r}
+myfunc2 <- function(n){
+  vector <- 1:n
+  return(cos(vector)*sin(vector)*tan(vector) - cos(vector)^2 - sin(vector)^3)
+}
+```
+
+then we can see that this function is much faster
+```{r}
+system.time(myfunc2(m))
+```
 
 
+## Apply family
+For loops can sometimes be avoided by vectorizing our operations properly. However, this is not always the case and sometimes we need to run our operations iteratively. In R there is an alternative way of writing for loops, which uses a different syntax. We call such a family of "functions" the **apply family**. 
+
+In general, one should use the R apply family for **clarity** not for performance, as this will usually be equivalent to that of an R loop. It is important to notice that these "functions" are actually **functionals**. The difference is that a functional takes a _function_ as an input and outputs a vector. As an example here is an example of a trivial functional that simply takes a vector, a function and applies such function to the vector:
+
+```{r}
+myfunctional <- function(x, func){
+  return(func(x))
+}
+```
+
+Here I summarize the main members of the apply family:
+
+* `apply(x, margin, fun, ..)` Applies the function `fun()` to the vector `x` along the dimension(s) `margin`. Should be used when you want to apply a function to a dimension of a matrix (or dimensions of an array).
+* `lapply(x, fun)`: Applies the function `fun()` to the list `x`. This should be used when you want to apply `fun()` to each element of a list and obtain a **list** of the same length as an output.
+* `sapply(x, fun)`: Applies `fun()` to `x`. Should be used like `lapply()` but this returns a **vector**. It is basically `lapply()` followed by `unlist()`.
+* `vapply(x, fun, fun_value)`: This works like `sapply()` but we can provide `fun_value` which tells `vapply()` the output type and output length. This allows a **speed improvement** and improves **consistency** by matching the output with `fun_value`.
+* `mapply(fun, ..)`: Multivariate version of `sapply()`. Basically, if you have a function `fun()` that has $n$ inputs, you can write `mapply(fun, v1, v2, .., vn)` and it will output a list where each element is the output of `fun(v1[i], .., vn[i])`.
+
+### Side effects in the Apply Family
+An important property of the `apply family` is that these functions have **no side effects**. Side effects are changes of variables in the environment you are currently working in. For example consider the following function
+
+```{r}
+f <- function(x){
+  x <- 1010
+  return(x)
+}
+```
+
+If we run it we get exactly what we expect `1010`:
+
+```{r}
+x <- 2
+f(x)
+```
+
+However, this function does not modify the value of `x`
+
+```{r}
+x
+```
+This means that our function `f` has no side effects. This is because the default behavior of R is the so called **copy-on-modify** which means that when we pass `x` to `f`, R does a copy of it and then when we assign `x <- 1010` it assigns `1010` to such copy, leaving `x` as it is. 
+
+One way to modify `f` so that it does have a side effect is to use the **superassignment operator** `<<-` which starts from the current environment and from there works its way up to the global environemnt to try and find the variable that needs to be "superassigned". Then, it assigns the value on the right of the superassignment operator to such variable.
+
+```{r}
+f2 <- function(){
+  x <<- 1010
+  return(x)
+}
+f2()
+```
+and now the value of `x` has been changed:
+
+```{r}
+x
+```
 
 
-## Apply, Map, Reduce, Filter
+### Apply
+This functional should be used with vectors having more than 1 dimension. For instance, suppose we have the following $10$-by-$3$ matrix
+
+```{r}
+m <- matrix(1:30, 10, 3)
+m
+```
+
+Then we might want to obtain a vector with $10$ entries, each corresponding to the sum of sine of the elements of each of the rows of the matrix `m`. We can use apply to achive this as follows:
+
+```{r}
+v1 <- apply(m, 1, function(x) sum(sin(x)))
+```
+By using a for-loop we can achieve the same result
+
+```{r}
+v2 <- rep(0, nrow(m))
+for (row in 1:nrow(m)) {
+  v2[row] <- sum(sin(m[row,]))
+}
+```
+
+these two vectors contain the same elements
+
+```{r}
+all.equal(v1, v2)
+```
+
+The second argument is called `margin` and tells `apply()` along which dimension we are using the function given as the third argument. For instance above we've used `1` which corresponds to rows. If one wanted to run the operation along the columns would use `2`. For higher dimensional arrays one can use a vector of dimensions such as `c(1, 2)`.
+
+## Map, Reduce and Filter
+
+* `Map(fun, x)`: Applies the function `fun()` to every element of the vector `x`.
+* `Reduce(fun, x)`: Applies a function of **two arguments** to a vector, recursively from left to right. For instance to sum all the elements of the vector `1:6` we can write `Reduce(function(a, b) a+b, 1:6)`.
+* `Filter(fun, x)`: Applies a function that returns `TRUE` or `FALSE` values to every element of a vector `x`. Basically this function is used to keep only the elements of the vector `x` that satisfy the condition encoded by the function `fun()`.
+
 
 ## Parallel Computing
 We want to generate points 
@@ -30,7 +156,7 @@ phi <- function(xunif, identity=FALSE){
   if (identity==TRUE){
     return(xunif)
   } else {
-    return(xunif+xunif^2)
+    return(xunif+xunif^2+xunif^3)
   }
 }
 xunift <- phi(xunif)
