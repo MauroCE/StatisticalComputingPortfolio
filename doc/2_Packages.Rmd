@@ -12,288 +12,191 @@ bibliography: bibliography.bib
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Installing Devtools
-I tried installing `devtools` using `install.packages("devtools")` on the console, but didn't work. It failed with the following error message
 
-`ERROR: dependencies ‘usethis’, ‘covr’, ‘httr’, ‘roxygen2’, ‘rversions’ are not available for package ‘devtools’`
-`* removing ‘/home/za19162/R/x86_64-pc-linux-gnu-library/3.6/devtools’`
-
-Then I went to the terminal and did a `sudo apt-get update`. After this,  I typed `apt-get -y build-dep libcur14-gnutls-dev` but got the following error 
-
-`E: Could not open lock file /var/lib/dpkg/lock-frontend - open (13: Permission denied)
-`
-`E: Unable to acquire the dpkg frontend lock (/var/lib/dpkg/lock-frontend), are you root?
-`
-
-So then I thought maybe it was because my terminal was in the Rproject root directory. So I closed the terminal and opened it again, but got the same error. So I read the comment found [here](https://stackoverflow.com/q/20923209/6435921) and decided to try and install `curl-dev` or `curl-devel`. So I typed `install.packages("curl-dev")` but it gave me the following error
-
-
-so I tried `install.packages("curl-devel")` and same error occurred. So I googled this error and found out [here](https://stackoverflow.com/a/52769000/6435921)
-that I might need to install the following on the terminal
-
-`sudo apt-get install libcurl4-openssl-dev r-base`
-
-I did it and obtained the following (cropped) output
-
-`libcurl4-openssl-dev is already the newest version (7.58.0-2ubuntu3.8).`
-`r-base is already the newest version (3.6.1-3bionic).`
-
-Following the same answer, I then typed the following into the terminal
-
-`R -q -e "install.packages(c('curl'))"`
-
-which successfully installed the package. I tried again `install.packages("devtools")` in the console but it didn't work. Scrolling up the error I found
+## Creating an R Package with RStudio
+To Create a package open RStudio, on the menu browse
 
 ```
-------------------------- ANTICONF ERROR ---------------------------
-Configuration failed because libxml-2.0 was not found. Try installing:
- * deb: libxml2-dev (Debian, Ubuntu, etc)
- * rpm: libxml2-devel (Fedora, CentOS, RHEL)
- * csw: libxml2_dev (Solaris)
-If libxml-2.0 is already installed, check that 'pkg-config' is in your
-PATH and PKG_CONFIG_PATH contains a libxml-2.0.pc file. If pkg-config
-is unavailable you can set INCLUDE_DIR and LIB_DIR manually via:
-R CMD INSTALL --configure-vars='INCLUDE_DIR=... LIB_DIR=...'
---------------------------------------------------------------------
-```
-So I decided to try and install `libxml2-dev`. I found out online that to install that on ubuntu I would need 
-
-`sudo apt-get install libxml2-dev`
-
-So I typed that into the terminal. This successfully installed the package. Then I tried again to install `devtools` using the `install.packages("devtools")`. It failed again giving this error at the top (again, you need to scroll):
-
-```
-------------------------- ANTICONF ERROR ---------------------------
-Configuration failed because openssl was not found. Try installing:
- * deb: libssl-dev (Debian, Ubuntu, etc)
- * rpm: openssl-devel (Fedora, CentOS, RHEL)
- * csw: libssl_dev (Solaris)
- * brew: openssl@1.1 (Mac OSX)
-If openssl is already installed, check that 'pkg-config' is in your
-PATH and PKG_CONFIG_PATH contains a openssl.pc file. If pkg-config
-is unavailable you can set INCLUDE_DIR and LIB_DIR manually via:
-R CMD INSTALL --configure-vars='INCLUDE_DIR=... LIB_DIR=...'
---------------------------------------------------------------------
-```
-So I went into the command line and typed 
-
-`sudo apt-get install libssl-dev`
-
-This seemed to work. So then I tried to install `devtools` again, using the usual command. This time seems to work, with the last few lines being:
-
-```
-* installing *source* package ‘devtools’ ...
-** package ‘devtools’ successfully unpacked and MD5 sums checked
-** using staged installation
-** R
-** inst
-** byte-compile and prepare package for lazy loading
-** help
-*** installing help indices
-*** copying figures
-** building package indices
-** installing vignettes
-** testing if installed package can be loaded from temporary location
-** testing if installed package can be loaded from final location
-** testing if installed package keeps a record of temporary installation path
-* DONE (devtools)
-
-The downloaded source packages are in
-	‘/tmp/RtmpqrWTdY/downloaded_packages’
+File > New Project > New Directory
 ```
 
-## Summary for Installing Devtools
+![](images/CreateProject.png)
 
- * Update `apt`: `sudo apt-get update`
- * Install (if not already present, which is likely) `libcurl`: `sudo apt-get install libcurl4-openssl-dev r-base` and then `R -q -e "install.packages(c('curl'))"`
- * Install `libxml2-dev` using `sudo apt-get install libxml2-dev`.
- * Install `libssl` using `sudo apt-get install libssl-dev`
- * Go to RStudio console and type `install.packages("devtools")`
- * Install `roxygen2` by typing in the console `install.packages("roxygen2")`.
+Then, from the following options choose `R Package`.
 
-## Creating a Package
-Open `RStudio`. Click on
+![](images/RPackageScreen.png)
+
+At this point, we need to assign the R Package a name and tell RStudio where to place the main folder containing our package files without our folder structure. Here, I've chosen to put it under the folder `University` and to call it `PerfectRPackage`.
+
+![](images/RPackageDirectory.png)
+
+After this, RStudio will open a new session that should look like the following one, with a `hello.R` file and with a lot of new content such as
+
+* `.Rbuildignore`
+* `.Rproj.user`
+* `DESCRIPTION`
+* `man`
+* `NAMESPACE`
+* `PerfectRPackage.Rproj`
+* `R`
+
+![](images/RPackageWelcomeScreen.png)
+
+Now it's time to create a GitHub repository. Browse inside the package directory, in this case called `PerfectRPackage` on the terminal. Type `git init` to initialize a repository, then follow it with `git add .` to stage all the new files created by RStudio when it created the package. Then, commit these staged changes using `git commit -m""` and put some helpful message in between `""`. It should look something like this
+
+![](images/TerminalGit.png)
+
+Now we need to create an upstream repository on GitHub. To do that, go on www.github.com, log in and click on the green button `New` to create a new repository
+
+![](images/GitHubNewRepoButton.png)
+
+you will be directed to the following page where you can specify the name of the GitHub repository and add other details. I suggest naming it with the same name of the RPackage, in this case `PerfectRPackage`, to add a useful description, keep it Public, and to not initialize it with a README.md file just yet. Finally, click on the green button at the bottom saying `Create Repository`
+
+![](images/NewRepository.png)
+
+Scroll to the bottom, and copy the following commands 
+
+![](images/GitPushExistingRepo.png)
+
+Now go back to your terminal, paste the commmands and this will connect the repository upstream.
+
+![](images/GitAddedRepository.png)
+
+Next, we want to add a `README.md` file. This will be the "welcome page" of our GitHub repository. To do so, simply go on the `PerfectRPackage` repository on GitHub and click on `Create New File` button on the right of the screen. This will load the following page. Call your file `README.md` and write some useful description.
+
+![](images/readme.png)
+
+Next, scroll to the bottom of the page, add a comment to describe what you're doing and commit to the master branch, as show in the following screenshot.
+
+![](images/commitreadme.png)
+
+Click `Commit new file`. Next, we need to get these changes on our local version of the repository, so open up the terminal in the package directory, which is `PerfectRPackage` in this case. Type in `git status` to see what's going on in your local repository. If everything is up to date and you don't have any changes pending to be staged, simply type `git pull`. Otherwise, add your changes by typing `git add .` and then commit them with some useful message, using the command `git commit -m""` as shown below.
+
+![](images/GitCommittingChangesBeforePulling.png)
+
+Next type 
 
 ```
-File -> New Project -> New Directory -> R Package
+git fetch origin --prune
 ```
 
-I've given the package the name `compass` and I've ticked `Create a git repository`. RStudio opens with a `hello.R` file.
-Next, I wanted to set some global options. So I followed the `devtools` [documentation](https://cran.r-project.org/web/packages/devtools/devtools.pdf). In that PDF file I searched for `devtools.desc.author`, which told me to use this parameter with a `utils::as.person()`. So I went to the [documentation](https://www.rdocumentation.org/packages/utils/versions/3.6.1/topics/person) for the `as.person()` function. Then went back to the console and typed
+followed by 
+
+```
+git rebase --preserve-merges origin/master
+```
+
+This will allow you to finally push your changes using `git push`. 
+
+![](images/rebasingGit.png)
+
+
+### Testing, Documentation, Licensing and README.md
+
+First of all, we need to install some packages. Open RStudio, go to the console and type
+
+```
+install.packages(c("devtools", "roxygen2", "testthat", "knitr"))
+```
+
+When they're finished installing, simply load the `devtools` package by typing
+
+```
+library(devtools)
+```
+
+Now we want to add an author to the package. So type in something like this
 
 ```
 mauro <- person(given="Mauro", family="Camara Escudero", email="maurocamaraescudero@gmail.com")
 ```
 
-then in the console I wrote `devtools.desc.author = mauro`. Then I opened the `DESCRIPTION` file and edited the author as described [here](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#The-DESCRIPTION-file). Basically I changed the `title`, the `author`, I added a field called `Author@R` , edited `Maintainer`, `Description`. Then modified `Licence` according to [here](http://r-pkgs.had.co.nz/description.html). Basically my DESCRIPTION file then became:
+and assign it to the `author` variable by typing 
 
 ```
-Package: compass
-Type: Package
-Title: A Compass package for orientation
-Version: 0.1.0
-Authors@R: person("Mauro", "Camara Escudero", email = "maurocamaraescudero@gmail.com",
-  role = c("aut", "cre"))
-Author: Mauro Camara Escudero [aut, cre]
-Maintainer: Mauro Camara Escudero <maurocamaraescudero@gmail.com>
-Description: Not sure what this package does just yet, but hopefully
-	will be something exciting!
-License: MIT
-Encoding: UTF-8
-LazyData: true
+devtools.desc.author = mauro
 ```
 
-Then I opened Atom, pasted the MIT license text given [here](https://tldrlegal.com/license/mit-license#fulltext) which is
+Now it's time to add a LICENCE to our Package. The easiest way to add an MIT license is to type 
 
 ```
-MIT License
-
-Copyright (c) 2019 Mauro Camara Escudero
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-and then saved it as `LICENSE.md` in the Package directory. Next, we need to add this to the `.Rbuildignore` file. So now the `.Rbuildignore` file looks like this
-
-```
-^.*\.Rproj$
-^\.Rproj\.user$
-LICENSE.md
+use_mit_license("Mauro Camara Escudero")
 ```
 
-## Correct Licensing
-Looking at Anthony Lee's example package I've changed DESCRIPTION file to have `MIT + file LICENSE` rather than just `MIT`.  Then changed the `LICENSE.md` file to 
-
-```
-# MIT License
-
-Copyright (c) 2019 Mauro Camara Escudero
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-and finally added a `LICENCE` file with the following
-
-```
-YEAR: 2019
-COPYRIGHT HOLDER: Mauro Camara Escudero
-```
-## Adding License to Rbuildignore
-Actually, I've added the following, following Anthony Lee's Rbuildignore
-
-```
-^LICENSE\.md$
-```
-
-## Populating the Package
- I installed the `testthat` package using `install.packages("testthat")`. Next I installed the `covr` package using `install.packages("covr")`.
-
-## Packages done well
-### Why Packages?
- 
- * Code can be easily shared with collaborators.
- * Packaged code will be easier to use by others.
- * Saving time, thanks to conventions.
-
-### Components of a Package
-
-* `.Rbuildignore` : Files needed but not used when building the package.
-* `.Rproj.user`: Used by RStudio.
-* `DESCRIPTION`: Package metadata.
-* `NAMESPACE`: Functions that the package exports & functions imported from other packages.
-* `R/`: Rscripts containing package functions.
-* `compass.Rproj`: This file makes the directory an RStudio project.
-
-### Devtools & RStudio tricks
-
-* `load_all()` can be used to simulate building, installing and attaching a package. This way you can work interactively. In the Environment/History/Connections tab you'll find it under the `Build`. Click `more` and then `Load All`. 
-* `check()` can be used to check that everything is okay with the package. Should be used often. This can also be found in the `Build` tab in Rstudio. It will be called `Check`.
-* Can use `CTRL` + `.` and type `DESCRIPTION` to open the DESCRIPTION file in RStudio.
-
-### How to properly add a LICENSE file
-Simply use the helper function `use_mit_license("Mauro Camara Escudero")` in the console. This function does all these things at once:
-
-* Setting License field in DESCRIPTION to 'MIT + file LICENSE'
-* Writing 'LICENSE.md'
-* Adding '^LICENSE\\.md$' to '.Rbuildignore'
-* Writing 'LICENSE'
-
-
-### Documenting code with Roxygen2
-Go into the `.R` script that you want to document. Put the cursor somewhere in the function definition. In RStudio go to 
+Now, we can add some documentation with Roxygen. To do this, simply open the `hello.R` script and click anywhere on the body of the `hello` function. Then, in the menu click
 
 ```
 Code > Insert roxygen skeleton
 ```
 
-and this will add some comments above the function definition. To create a draft documentation simply run `document()` from the `devtools` package, or use it from the `Build` tab. Notice that sometimes it is not available in the `Build` tab. In such cases, go to `Build` tab, then `more` and click on `configure build tools`. There you will be able to let RStudio know that you want to build documentation using `roxygen`.
-
-
-### NAMESPACE file
-My current namespace file looked like this:
+To add a documentation skeleton. Remember to save the R script file. Now it's time to actually create the documentation. Since the file `NAMESPACE` was created by RStudio and not by Roxygen, we can delete such file for now. Then, go to the console and type 
 
 ```
-exportPattern("^[[:alpha:]]+")
+document()
 ```
 
-But since it was not created with `roxygen` it cannot be modified by it. Therefore, I deleted it. Since I had already used `roxygen` I also deleted the `hello.Rd` file in the `man` directory in the package folder. Then you can run `document()` again.
+This will re-create the `NAMESPACE` file and add a new folder called `man`, containing markdown documents with the documentation. The next thing to do is to install the package. Go to the console and type 
 
-### Installing the package
-To install the package simply run `install()` in the console.
-
-### Attaching the package
-Before attaching, close RStudio and restart it to have a clear workspace. Then type `library(compass)` into the console. You'll notice that now you can use `hello()` and it will print "Hello, world!".
-
-### Using TestThat to test functions
-Type `use_testthat()` in the console. Next, use the function `use_test("hello")` to create the test file. I've then changed the newly-created test file called `test-hello.R` as follows:
-
-```
-test_that("prints the correct text", {
-  expect_equal(hello(), "Hello, world!")
-})
+``` 
+install()
 ```
 
-then, I load the `testthat` package using `library(testthat)` and by loading the package using `load_all()`. To test simply run `test()` in the console. 
+Next, we want to create some tests. Type
 
-### Importing external function
-I've created a file called `tilt_head()` which uses the `head()` function. In order to import such function correctly type `use_package("utils")` into the console. Next, I went into the file, and wherever I had to use `head()` I replaced it with `utils::head()`. If `check()` doesn't work now, be sure to use `load_all()`.
+```
+use_testthat()
+```
 
-### Adding a README file
-Simply use `use_readme_rmd()` and it will create both the `README.md` and the `README.Rmd` to edit the readme in RMarkdown.
+and you should get an output that looks like this
 
-### Travis
-Go on [travis dot com](https://travis-ci.com/account/repositories) and sign in with GitHub. Then add a file called `.travis.yml` to the package directory with the following text
+![](images/usetestthat.png)
+
+To create a new test file for the function `hello` go to the console and type 
+
+```
+use_test("hello")
+```
+This will create a new file called `test-hello.R`, which will look like this
+
+![](images/testhello.png)
+
+Modify this function to do a sensible test. For instance, give a sensible name and check that the function `hello` actually prints `Hello, World!`. It should look like this:
+
+![](images/testfunctionsensible.png)
+
+Now we can actually test our function. To do so, go to the console, load the `testthat` package by typing
+
+```
+library(testthat)
+```
+
+Then load the `PerfectRPackage` in the console by typing
+
+```
+load_all()
+```
+
+and test it using
+
+```
+test()
+```
+
+Hopefully, the test will be fine and you should obtain a summary of the testing that looks like this:
+
+![](images/testingpackage.png)
+
+At this point you could push all the new changes to the upstream repository. Notice that if you did not create a `README.md` file, you can create it now together with its RMarkdown version by typing the following in the console
+
+```
+use_readme_rmd()
+```
+
+If you do this, remember to re-knit the README document before committing the changes. 
+
+### Travis for Continuous Integration
+
+To do continuous deployment, go on https://travis-ci.com/ and login with your GitHub account, granting access to the repositories for which you want continuous development. Next, create a new text file called `.travis.yml` and paste the following content
 
 ```
 language: r
@@ -310,14 +213,148 @@ after_success:
   - Rscript -e 'covr::codecov()'
 ```
 
-After this, commit. From the next commit onwards travis will start building and testing your code. Notice that to add the travis build status you need to go to the travis website, then click on "build|unknown" and select "Markdown" to obtain
+commit the changes. From the **next** commit, travis will start building and testing your package. Go on the travis website and you should be able to see a screen looking like this
+
+![](images/travisbuild.png)
+
+### Adding travis badge to GitHub readme
+
+If you want to add a badge to your README.md file, simply go on the travis website shown above and click on the badge saying `build unknown`. Select `Markdown`
+
+![](images/badgemd.png)
+
+Copy the text in the last cell, go into your `README.rmd' file and type it under the comments saying where to add the badge, like shown in the picture below
+
+![](images/addbadgetormd.png)
+
+Save the RMarkdown file. If everything went well, in the travis website you should now see a successful build. 
+
+![](images/travisbuildsuccessful.png)
+
+
+Finally, knit the `README.rmd` and then push your changes to the upstream directory, and you should then be able to see the badge on your README.md file on GitHub.
+
+### Hosting a Website with Travis on GitHub pages
+
+Go to GitHub and click on your profile image on the top right corner to toggle the menu. Click on `Settings` and then click to the bottom option `Developer Settings`. Here, click on `Personal access tokens` and click on `Generate new token`. Make sure that `public_repo` is selected.
+
+![](images/tokengithubpublicrepo.png)
+
+Copy the token and go to the travis website. In the successful build, click on `More options` on the right of the screen and choose `Settings`. 
+
+
+Scroll down to `Environment Variables`. Here, choose a name that will be used as a variable holding your personal access token. For instance  `GITHUB_PAT` and paste your Personal Access Token from github in the `value` box. Then click `Add`. In the following screenshot I show you where you should be adding this information, without actually adding it for security reasons
+
+![](images/envvartravis.png)
+
+Now go into the `.travis.yml` file and change the content to 
 
 ```
-[![Build Status](https://travis-ci.com/MauroCE/compass.svg?branch=master)](https://travis-ci.com/MauroCE/compass)
+language: r
+dist: xenial
+cache: packages
+branches:
+    only:
+        - master
+r_packages:
+    - rmarkdown
+
+script:
+    - Rscript -e 'rmarkdown::render("website.Rmd", output_dir="public")'
+
+deploy:
+    provider: pages
+    skip_cleanup: true
+    github_token: $GITHUB_PAT
+    on:
+        branch: master
+    local_dir: public
+    target_branch: gh-pages
 ```
 
-Next simply add the following to the readme to add the code coverage badge
+Make sure that the setting `github_token` is set to the same name that you've given to the github token on travis, in this case `GITHUB_PAT`. Notice how we've set `target_branch: gh-pages`. Go on GitHub and create a new branch called `gh-pages`. To do so, click `Branch:master` type `gh-pages` and click at the bottom where it says `Create branch: gh-pages`.
 
-```
-[![codecov](https://codecov.io/gh/MauroCE/compass/branch/master/graph/badge.svg)](https://codecov.io/gh/MauroCE/compass)
-```
+![](images/ghpagescreation.png)
+
+Finally, notice how we've told travis to build the website for `website.Rmd` RMarkdown file. This doesn't exist yet, so we'll create it now. Go to RStudio and create such file in the main folder `PerfectRPackage'. 
+
+![](images/websitermd.png)
+
+Finally, add, commit and push the changes so that travis can build the website. When travis build will be successful, your website will be available at https://mauroce.github.io/PerfectRPackage/website.html. 
+
+### Adding Codecov Badge
+To add a codecov badge, go to www.codecov.io and login with github. In the `PerfectRPackage` repository click on `Settings` and on `Badge` on the left hand side of the screen. Copy the code under Markdown, as shown below
+
+![](images/codecovbadge.png)
+
+and paste it under the travis build badge on the `README.Rmd` file. Knit it, add the changes, commit them and push them. If the build is successful, you should see a codecov badge on your `README.md` file on GitHub.
+
+![](images/codecovbadgegithub.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
