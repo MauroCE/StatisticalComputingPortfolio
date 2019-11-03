@@ -223,7 +223,7 @@ If you want to add a badge to your README.md file, simply go on the travis websi
 
 ![](images/badgemd.png)
 
-Copy the text in the last cell, go into your `README.rmd' file and type it under the comments saying where to add the badge, like shown in the picture below
+Copy the text in the last cell, go into your `README.rmd` file and type it under the comments saying where to add the badge, like shown in the picture below
 
 ![](images/addbadgetormd.png)
 
