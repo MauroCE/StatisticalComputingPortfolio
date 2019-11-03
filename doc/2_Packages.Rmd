@@ -276,7 +276,7 @@ Make sure that the setting `github_token` is set to the same name that you've gi
 
 ![](images/ghpagescreation.png)
 
-Finally, notice how we've told travis to build the website for `website.Rmd` RMarkdown file. This doesn't exist yet, so we'll create it now. Go to RStudio and create such file in the main folder `PerfectRPackage'. 
+Finally, notice how we've told travis to build the website for `website.Rmd` RMarkdown file. This doesn't exist yet, so we'll create it now. Go to RStudio and create such file in the main folder `PerfectRPackage`. 
 
 ![](images/websitermd.png)
 
