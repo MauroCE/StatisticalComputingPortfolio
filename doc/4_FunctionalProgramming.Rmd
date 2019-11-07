@@ -1,0 +1,162 @@
+---
+title: "FunctionalProgramming"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Scoping
+Before dwelling into functional programming, we need to understand how R scoping works. That is, we need to understand how R manages to look up the value of a symbol. There are two types of scoping
+
+* Lexical Scoping
+* Dynamic Scoping
+
+Let's illustrate what they mean with an example.
+
+```{r lexical scoping}
+# Define a variable and a function using that variable. They are both defined in the same environment.
+x <- 1
+func <- function(){
+  return(x + 1)
+}
+# Use func inside another function, where we set the value of x to 2
+func2 <- function(){
+  x <- 2
+  return(func())
+}
+# Output of func2 is 1+1=2 rather than 2+1=3
+func2()
+```
+
+Notice how even if we've assigned the value `2` to `x` inside the body of `func2()`, the function `func()` still uses the value of `x` defined in the same environment in which `func()` is defined, i.e. `x <- 1`. This is called **lexical scoping**. Basically, with lexical scoping you don't need to know how or where the function is being called. You just need to know where the function was defined, in order to know what value it will look up. Here, it doesn't matter that `func()` was _called_ inside of `func2()`. What matters is that is was _defined_ in the global scope, where `x` was set to `1`.
+
+If R used **dynamical scoping**, then it would look up the value of `x` in the environment where it was called. In this case, it would look up the value of `x` inside the body of the function `func2()`, where `x` is set to `2`. To simulate dymanical scoping in R we can write 
+
+```{r dynamical scoping simulation}
+# Re-define func, not make it look up the value in the parent environment (i.e. env of the caller)
+func <- function() {
+  return(eval.parent(quote(x)) + 1)
+}
+# See how dynamical scoping is implemented
+func2()
+```
+
+## Functional Programming
+### Why is it important?
+Suppose that we have a dataframe containing mainly integers, but at random we have strings `hello` and we want to replace them with `0`.
+
+```{r df}
+# Set a seed for reproducibility
+set.seed(1)
+df <- setNames(data.frame(replicate(8, sample(list(1, 2, 3, 4, 5, 'hello'), 5, rep=TRUE))), letters[1:8])
+df
+```
+
+Of course, a very simple way of doing this would be to use `df[df=='hello'] <- 0`, but this is just an example to illustrate a point. A more cumbersome way of doing this would be to go through each column, and replace those elements that are equal to `hello`. 
+
+```{r cumbersome, eval=FALSE}
+df$a[df$a == 'hello'] <- 0
+df$b[df$b == 'hello'] <- 0
+df$c[df$c == 'hello'] <- 0
+df$d[df$d == 'hello'] <- 0
+df$e[df$e == 'hello'] <- 0
+df$f[df$f == 'hello'] <- 0
+df$g[df$g == 'hello'] <- 0
+df$h[df$h == 'hello'] <- 0
+```
+
+This is bad practice because it violates the **Don't Repeat Yourself** (DRY) rule, i.e. we are replicating code and this not only looks less elegant, but it is more error-prone and in the long-run can be harder to interpret when we go back to our code. A functional programming way of solving this consists in creating a function that, given a column of a dataframe, replaces every appearance of `'hello'` with `0`.
+
+```{r function}
+replacehello <- function(column){
+  column[column == 'hello'] <- 0
+  return(column)
+}
+```
+
+Now we can use this function on every column of the dataframe through the `lapply()` function that will apply it on every element of a list. Luckily, a dataframe is a list of columns. Using `lapply()` would return a list, but by passing this into the dataframe, we can restore the data frame structure.
+
+```{r lapply}
+df[] <- lapply(df, replacehello)
+df
+```
+
+Notice how much more elegant and less error-prone the functional programming version of the code is. Now, we turn to a more thorough discussion of functional programming in R.
+
+### First Class Functions
+In R, functions are _first class citizens_. Another way of saying this is that they are **pure functions**. A function is pure if essentially it can be treated as any other variable, so that we can
+
+1. _Pass functions as arguments to other functions_. 
+2. _Return functions as outputs of other functions_.
+3. _Store functions in data structures, as any other variable_.
+
+#### Functions as Arguments
+We've already seen this when talking about the R Apply family in the Common R chapter. Consider the following example
+
+```{r arguments}
+square_and_sine <- function(x){
+  
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

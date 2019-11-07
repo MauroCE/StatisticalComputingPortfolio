@@ -1,6 +1,10 @@
 ---
 title: "CommonR"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
 ---
 
 ```{r setup, include=FALSE}
@@ -103,7 +107,7 @@ x
 ```
 
 
-### Apply
+### A simple example: Apply
 This functional should be used with vectors having more than 1 dimension. For instance, suppose we have the following $10$-by-$3$ matrix
 
 ```{r}
