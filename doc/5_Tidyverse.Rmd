@@ -9,5 +9,15 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(reshape2)
+```
+# Exploring Metadata
+```{r}
+# Read in metadata, setting column "primary_use" to factor rather than character
+meta <- read_csv("energydata/building_metadata.csv", col_types=cols(primary_use=col_factor(NULL)))
+# Read training dataset. This has 20 million rows. Need to cut it down.
+train <- read_csv("energydata/train.csv")
+```
 
