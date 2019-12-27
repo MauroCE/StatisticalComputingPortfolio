@@ -1,0 +1,74 @@
+---
+title: "MultivariateNormal"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Suppose that we want to generate $n$ samples from a $p$-dimensional multivariate normal distribution 
+$$
+{\bf{y}} \sim N(\boldsymbol{\mathbf{\mu}}, \Sigma)
+$$
+where $\boldsymbol{\mu} = (\mu_1, \ldots, \mu_p)^\top\in\mathbb{R}^{p\times 1}$ and $\Sigma\in\mathbb{R}^{p\times p}$. We aim to find a _square root_ matrix $R$ such that
+$$
+R^\top R = \Sigma
+$$
+
+so that if ${\bf{z}}\sim N({\bf{0}}, I_p)$ then 
+$$
+R^\top {\bf{z}} + \boldsymbol{\mu} \sim N(\boldsymbol{\mathbf{\mu}}, \Sigma)
+$$
+There are two main ways of doing this. One via _Cholesky_ decomposition, and one via _Eigendecomposition_. Basically the square root of a positive definite matrix is not unique.
+
+## Cholesky Decomposition
+We choose $R$ to be the **Cholesky factor** of $\Sigma$. This means that it is the _unique_ **upper triangular** square root. The problem with this implementation is that it fails if $\Sigma$ is not positive-definite. In particular, it fails even if $\Sigma$ is just positive semi-definite. In such case one can use pivoting.
+
+```{r, eval=FALSE}
+R <- chol(vcov, pivot=TRUE)
+```
+
+
+## Eigendecomposition
+A much more stable approach, although slower is to use eigendecomposition. Since $\Sigma$ is symmetric, we know that it's diagonizable
+$$
+\Sigma = U \Lambda U^\top
+$$
+When $\Sigma$ is positive semi-definite, its eigenvalues are all non-negative. This means that we can take the square root of them. This means that we can take the square root of $\Lambda$ because the product of diagonal matrices is still diagonal. Thus
+$$
+\Sigma = U \Lambda^{1/2}\Lambda^{1/2} U^\top = (\Lambda^{1/2}U^\top)^\top \Lambda^{1/2}U^\top
+$$
+Therefore our matrix square root is 
+$$
+R:= \Lambda^{1/2}U^\top
+$$
+which means that given a sample ${\bf{z}}$ that is multivariate standard normal, we can find multivariate normal sample with mean $\boldsymbol{\mu}$ and variance covariance matrix $\Sigma$ as
+$$
+\boldsymbol{\mu} + \Lambda^{1/2}U^\top{\bf{z}} \sim N(\boldsymbol{\mu}, \Sigma)
+$$
+If we have an $p\times n$ matrix $Z$ containing $n$ $p$-dimensional samples of a multivariate standard normal, then we would have
+$$
+M + \Lambda^{1/2}U^\top Z
+$$
+
+where $M$ is $p\times n$ and basically repeats the mean $\boldsymbol{\mu}$ in each of the $n$ columns.
+
+```{r}
+mvn_eigen <- function(n, mean, vcov){
+  # find the dimension p
+  p <- nrow(vcov)
+  # Find eigenvalues and eigenvectors
+  eigen_object <- eigen(vcov, symmetric=TRUE)
+  values <- eigen_object$values
+  U <- eigen_object$vectors
+  # Find square root of the diagonal matrix. Make sure eigenvalues are non-negative
+  root_lambda <- diag(sqrt(pmax(values, 0)))
+  # Generate standard normal samples
+  Z = matrix(rnorm(n*p), nrow=p, ncol=n)
+  # broadcast the mean into the matrix M
+  M <- matrix(rep(mean, n), nrow=p, ncol=n)
+  # return matrix with a MVN sample in each row
+  return(M + root_lambda %*% (t(U) %*% Z))
+}
+```
