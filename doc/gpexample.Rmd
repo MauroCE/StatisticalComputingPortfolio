@@ -1,0 +1,153 @@
+---
+title: "examplegp"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Import libraries
+```{r}
+library(MASS)
+library(reshape2)
+library(ggplot2)
+```
+
+Define points for the function values and define a bandwidth `l`
+```{r}
+x_predict <- seq(-5,5, len=50)
+l <- 1.0
+```
+Define a squared exponential (`SE`) function and a covariance function `cov`
+```{r}
+SE <- function(Xi, Xj, l){
+  return(exp(-0.5 * (Xi - Xj)^2 / l^2))
+}
+cov <- function(X, Y){
+  return(outer(X, Y, SE, l))
+}
+```
+Now calculate the `K` matrix, basically this will be the `COV` matrix here. 
+```{r}
+COV <- cov(x_predict, x_predict)
+```
+Sample some function
+```{r}
+values <- mvrnorm(3, rep(0, length=length(x_predict)), COV)
+```
+Melt to put in long form to be able to plot
+```{r}
+dat <- data.frame(x=x_predict, t(values))
+dat <- melt(dat, id="x")
+head(dat)
+```
+Finally plot it
+```{r}
+ggplot(data=dat, aes(x=x, y=value)) +
+  geom_rect(xmin=-Inf, xmax=Inf, ymin=-2, ymax=2, fill="grey80") + 
+  geom_line(aes(group=variable)) + 
+  scale_y_continuous(lim=c(-3, 3), name="output, f(x)") + 
+  xlab("input, x") + 
+  theme_bw()
+```
+
+## Noise-free observations
+Here is some observed data
+```{r}
+obs <- data.frame(x=c(-4, -3, -1, 0, 2),
+                  y=c(-2,  0, 1, 2, -1))
+```
+Now we calculate
+$$
+cov(X_0, X_0)^{-1}
+$$
+```{r}
+cov_xx_inv <- solve(cov(obs$x, obs$x))
+```
+Now find the predictive mean
+$$
+Ef = cov(X_p, X_0)cov(X_0, X_0)^{-1}y
+$$
+
+```{r}
+Ef <- cov(x_predict, obs$x) %*% (cov_xx_inv %*% obs$y)
+```
+
+Now compute the variance covariance matrix
+$$
+C = cov(X_p, X_p) - cov(X_p, X_0)cov(X_0, X_0)^{-1}cov(X_0, X_p)
+$$
+```{r}
+Cf <- cov(x_predict, x_predict) - cov(x_predict, obs$x) %*% cov_xx_inv %*% cov(obs$x, x_predict)
+```
+
+Get $3$ samples from the posterior
+```{r}
+values <- mvrnorm(3, Ef, Cf)
+```
+
+
+Plot the solutions
+```{r}
+# Create a dataframe with x values and the new samples
+dat <- data.frame(x=x_predict, t(values))
+dat <- melt(dat, id="x")
+# dataframe with the mean
+dfmean <- data.frame(x=x_predict, y=Ef, ymin=Ef-2*sqrt(diag(Cf)), ymax=Ef+2*sqrt(diag(Cf)))
+# Plot the figure
+ggplot() + 
+  geom_ribbon(data=dfmean, aes(x=x_predict, ymin=ymin, ymax=ymax), fill="grey80") +
+  geom_line(data=dat, aes(x=x, y=value, color=variable)) + 
+  geom_line(data=dfmean, aes(x=x_predict, y=Ef), size=1) + 
+  geom_point(data=obs, aes(x=x, y=y), color='red') + 
+  xlab("input, x") + 
+  ylab("output, f(x)")
+```
+
+
+Now we work with additive noise instead. We choose a sigma that represents the variance of the zero-mean noise added to each observation.
+
+```{r}
+sigma.n <- 0.25
+cov_xx_inv <- solve(cov(obs$x, obs$x) + sigma.n^2 * diag(1, length(obs$x)))
+Ef <- cov(x_predict, obs$x) %*% cov_xx_inv %*% obs$y
+Cf <- cov(x_predict, x_predict) - cov(x_predict, obs$x) %*% cov_xx_inv %*% cov(obs$x, x_predict)
+```
+
+Get $3$ random samples now
+
+```{r}
+values <- mvrnorm(3, Ef, Cf)
+```
+
+Plot everything
+```{r}
+dat <- data.frame(x=x_predict, t(values))
+dat <- melt(dat, id="x")
+# create dataframe for mean
+dfmean <- data.frame(x=x_predict, y=Ef, ymin=Ef-2*sqrt(diag(Cf)), ymax=Ef+2*sqrt(diag(Cf)))
+# Plot
+ggplot() + 
+  geom_ribbon(data=dfmean, aes(x=x_predict, ymin=ymin, ymax=ymax), fill="grey80") + 
+  geom_line(data=dat, aes(x=x, y=value, color=variable)) +
+  geom_line(data=dfmean, aes(x=x_predict, y=Ef), size=1) + 
+  geom_point(data=obs, aes(x=x, y=y), color='red') + 
+  xlab("input, x") + 
+  ylab("output, f(x)")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
