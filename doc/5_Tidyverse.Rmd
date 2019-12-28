@@ -15,7 +15,8 @@ library(reshape2)
 library(magrittr)
 ```
 
-Import the spotify data
+## Spotify: Genre Popularity by Artist
+Import the spotify data an drop `index` column cause it contains redundant information.
 ```{r}
 spotify <- read_csv("top50.csv", col_names=c(
   "index", "Song", "Artist", "Genre", "BPM", "Energy", "Danceability",
@@ -26,13 +27,11 @@ spotify <- read_csv("top50.csv", col_names=c(
     Artist=col_factor(),
     Genre=col_factor()), 
   skip=1)
-```
-Drop the column "index" cause its useless
-```{r}
+# Index column contains row_numbers
 spotify <- spotify %>% select(-c("index"))
 ```
-# Genre Popularity
-For brevity, will change the name of the genres and change one of the artists cause it has a non-utf-8 name,
+
+For brevity, will change the name of the genres and change one of the artists cause it has a non utf-8 name.
 ```{r}
 levels(spotify$Genre) <- c(
   "CanPop", "ReggaeFlow", "DancePop", "Pop", "DfwRap", "Trap", "CountryRap",
@@ -51,7 +50,7 @@ levels(spotify$Artist) <- c(
 )
 ```
 
-
+Let's make a bar plot in polar coordinates showing the popularity of genres and stack the columns by artists. 
 ```{r, fig.width=10, fig.height=7}
 p <- ggplot(data=spotify) + 
   geom_bar(aes(x=Genre, fill=Artist)) + 
@@ -62,8 +61,7 @@ p <- ggplot(data=spotify) +
 p
 ```
 
-
-
+We can also obtain an equivalent **interactive** version using `plotly` which makes it easier to understand when there are multiple variables.  Notice how "Dance Pop" and "Pop" are the most popular genres in the top 50 Spotify songs, and how Ed Sheeran dominates the "Pop" genre.
 ```{r}
 # First, create new dataframe where we re-order the factor
 spotify_ordered <- within(spotify, Genre <- factor(Genre, levels=names(sort(table(Genre), decreasing=TRUE))))
@@ -77,8 +75,8 @@ p <- ggplot(data=spotify_ordered) +
 ggplotly(p)
 ```
 
-# Correlation of Variables
-Let's see the correlation between variables.
+## Spotify: Correlation of Musical Features
+Let's see the correlation between the different features that describe a song.
 ```{r, fig.width=15, warning=FALSE}
 # create function to set to NA all upper triangular part of the matrix
 upper_tri_to_na <- function(matrix){
@@ -107,8 +105,10 @@ ggplot(melted_corrmatrix, aes(x=Var1, y=Var2, fill=value)) +
   scale_fill_continuous(na.value="grey91")
 ```
 
+We can see that `Loudness` and `Energy` are positively correlated, as one would expect. Surprisingly, `Speechiness` and `BPM` are also positively correlated. `Energy` and `Acousticness` are negatively correlated instead.
 
-# Kaggle Kernels
+## Most Popular Kaggle Kernels
+We can also work on the dataset containing information about the most popular kaggle kernels. We cast columns to the correct datatype to avoid problems later on with factors.
 ```{r}
 kaggle <- read_csv("kagglekernels.csv", col_types = cols(
   Votes=col_double(),
