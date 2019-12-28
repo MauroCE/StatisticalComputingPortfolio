@@ -1,4 +1,4 @@
 *.html
 .Rproj.user
-.csv
+*.csv
 doc/energydata/
