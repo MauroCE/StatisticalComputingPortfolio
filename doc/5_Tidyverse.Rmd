@@ -124,83 +124,20 @@ kaggle <- read_csv("kagglekernels.csv", col_types = cols(
 ))
 ```
 
-## Work 1
-Need to use `kaggle$Output` to extract the number of visualizations and the number of data files outputted by each kernel.
-
-`filter(kaggle, str_detect(Output, "This script outputs "))` this kinda works. Maybe also `kaggle %>% filter(str_detect(Output, "This script outputs ")) %>% filter(str_detect(Output, "visualizations and "))` helps.
-
-
-Also this grabs the number of visualizations
-
-```
-str_extract(kaggle$Output, "(?<=This script outputs )(.*)(?= visualizatio(n\\.$|ns\\.$))")
-```
-This grabs the number of data files only
-```
-str_extract(kaggle$Output, "(?<=This script outputs )(.*)(?= data fil(e\.|es\.))")
-```
-
-and this grabs the number of data files
-
-```
-str_extract(kaggle$Output, "(?<=visualizations and )(.*)(?= data fil)")
-```
+Want to use  `kaggle$Output` to extract the number of visualizations and the number of data files that each kernel outputs.
 
 ```{r}
-# Grab the ones that output NOTHING
-no_out <- str_extract(kaggle$Output, "(^This script doesn't output)")
-# everything else flag
-some_output_ind <- is.na(no_out)
-# Get dataframe with EVERYTHING ELSE (some output)
-some_output <- kaggle %>% filter(some_output_ind)
-# Extract visualizations only
-viz <- str_extract(kaggle$Output, "(?<=This script outputs )(.*)(?= visualizatio(n\\.$|ns\\.$))")
-# INDECES OF THOSE THAT DONT OUTPUT NOTHING & DONT ONLY OUTPUT VIZ
-some_noviz_ind <- some_output_ind & is.na(viz)
-# now extract those with viz (and data files)
-vizfiles <- str_extract(kaggle$Output, "(?<=This script outputs )(.*)(?= visualizatio(n|ns) and)")
-# similarly, extract those with (viz and) data files
-filesviz <- str_extract(kaggle$Output, "(?<=visualizatio(ns|n) and )(.*)(?= data fil)")
-# get indeces for everything else (basically only data files)
-only_files <- some_noviz_ind & is.na(filesviz)
-# now get everything ending with data files, then we basically get those indeces and 
-# check them against the current indeces
-ending_datafiles <- str_extract(kaggle$Output, "(?<=This script outputs )(.*)(?= data fil(es|e)\\.$)")
-# check them against, grab the correct indeces. Basically where we have both viz and 
-# data files, we set them to NA
-ending_datafiles[!only_files] <- NA
+kaggle %<>% 
+  select(Output) %>% # Grab the `Output` column. It contains strings.
+  transmute(
+    OutputVisualizations = as.numeric(str_extract(Output, "\\d+(?= vis)")), # digits before "vis"
+    OutputFiles = as.numeric(str_extract(Output, "\\d+(?= data fil)"))) %>% # digits before "data fil"
+  mutate_all(replace_na, 0) %>% # replace nan values with 0s in case nothing is outputted
+  cbind(kaggle, .) %>% # bind these columns at the end of kaggle
+  select(-Output)  # drop the Output column as it is useless now
 ```
 
-Now its time to put everything together somehow. We need to cast all of them to numeric.
-```{r}
-# Number of data files by DATA FILES ONLY
-files_only <- as.double(ending_datafiles)
-# Number of Visualizations by VIZ ONLY
-viz_only <- as.double(viz)
-# Number of visualizations for viz + data files
-viz_and_datafiles <- as.double(vizfiles)
-datafiles_and_viz <- as.double(filesviz)
-```
-Now we use `mutate` to create new columns. One column will be `output_viz` and one `output_files`. In order to do that, we need to calculate the total number of visualizations and the total number of output files. This is not hard because they should be unique.
-```{r}
-# Instantiate with all zeroes
-output_viz <- rep(0, nrow(kaggle))
-output_files <- rep(0, nrow(kaggle))
-# At the correct indeces, add viz only.
-output_viz[!is.na(viz_only)] <- viz_only[!is.na(viz_only)]
-# at the correct indeces, add viz (+ data files)
-output_viz[!is.na(viz_and_datafiles)] <- viz_and_datafiles[!is.na(viz_and_datafiles)]
-# At the correct indeces, add files only
-output_files[!is.na(files_only)] <- files_only[!is.na(files_only)]
-# At the correct indeces, add files (+ viz)
-output_files[!is.na(datafiles_and_viz)] <- datafiles_and_viz[!is.na(datafiles_and_viz)]
-# finally use mutate to create these two new columns (try assignment pipe)
-kaggle <- kaggle %<>% mutate(output_viz=output_viz, output_files=output_files) %>% 
-  select(-Output)
-```
-
-
-# Tags, Programming Languages and File Types
+## Kaggle Kernels: Tags, Programming Languages and File Types
 
 Python seems to be the most utilized languages among the top-voted kernels. Let's see how this changes if we also group them by code type. Code type has two options `Script` or `Notebook`. Notice that we want to group by code type first, and then by language. Not the other way around.
 ```{r}
