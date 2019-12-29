@@ -136,6 +136,25 @@ kaggle %<>%
   cbind(kaggle, .) %>% # bind these columns at the end of kaggle
   select(-Output)  # drop the Output column as it is useless now
 ```
+We can use this data to see how the number of output visualizations and the number of output files changes as the programming language and the file type change.
+
+```{r}
+kaggle %>% 
+  select(c(Language, OutputVisualizations, OutputFiles, `Code Type`)) %>% 
+  group_by(`Code Type`, Language) %>% 
+  summarise(
+    Visualizations=sum(OutputVisualizations), 
+    Files=sum(OutputFiles)) %>% 
+  gather("Outputs", "NumOutputs", -Language, -`Code Type`) %>% 
+  ggplot(aes(x=Language, y=NumOutputs, fill=Outputs, color=Outputs)) + 
+    geom_bar(stat="identity", alpha=0.3) +
+    facet_wrap(~`Code Type`) + 
+    labs(
+      y="Total Outputs (Visualizations + Files)", 
+      x="Programming Language", 
+      title="Output Visualizations and Files by Language and Code Type")
+```
+We can see that among the scripts `markdown` outputs many more visualizations that any other programming language. We can also notice how `R` notebooks seem to mainly output visualizations and not many files, as it would seem reasonable. `SQLite` also does not suprise, it only outputs files because it is a query language.
 
 ## Kaggle Kernels: Tags, Programming Languages and File Types
 
@@ -179,24 +198,24 @@ order_ind <- tagcount %>% order(decreasing=TRUE)
 # now order both the tagcount and the names
 tagcount <- tagcount[order_ind]
 tags <- tags[order_ind]
-# finally put everything together into a dataframe
+# finally put everything together into a tibble
 tagcountdf <- tibble(tag=as.factor(tags), count=as.double(tagcount))
 # let's consider tags used 5 times or more
-tagcountdf %<>% subset(count>=5)
-# finally, plot this
-p <- ggplot(data=tagcountdf, aes(x=tag, y=count)) + 
-  geom_bar(stat="identity", color="white", width=1.0) + 
-  coord_flip() + 
-  theme(axis.text.x=element_text(size=9),
-        axis.title.x=element_text(size=15),
-        axis.text.y=element_text(size=9),
-        axis.title.y=element_text(size=15)) + 
-  labs(x="Tags Used More then 5 times", 
-       title="Most Popular Tags in Top-Voted Kaggle Kernels",
-       y="Number of Occurrencies") + 
-  scale_y_continuous(expand=c(0,0), limits = c(0, max(tagcount)+0.1)) + 
-  scale_x_discrete(limits=tagcountdf$tag)
-ggplotly(p)
+tagcountdf %>%
+  subset(count>=5) %>% 
+  {ggplot(data=., aes(x=tag, y=count)) + 
+    geom_bar(stat="identity", color="white", width=1.0) + 
+    coord_flip() + 
+    theme(axis.text.x=element_text(size=9),
+          axis.title.x=element_text(size=15),
+          axis.text.y=element_text(size=9),
+          axis.title.y=element_text(size=15)) + 
+    labs(x="Tags Used More then 5 times", 
+         title="Most Popular Tags in Top-Voted Kaggle Kernels",
+         y="Number of Occurrencies") + 
+    scale_y_continuous(expand=c(0,0), limits = c(0, max(tagcount)+0.1)) + 
+    scale_x_discrete(limits=.$tag)} %>% 
+  ggplotly
 ```
 
 
