@@ -167,12 +167,37 @@ data.frame(x=xtest, t(mvrnorm(npost_samples, gpmean, gpvcov))) %>%
 
 
 # Note on Vectorized Kernel Matrix
-One might wonder why in the function `kernel_matrix_vectorized()` we fill the matrix `Ynorm` by row. Afterall `R` works with column-major storage so this should be inefficient. While it is true that it is inefficient, it is more efficient than transposing the matrix. One can benchmark the two options using the code below. The code block here is set with `eval=FALSE` because otherwise this markdown script would take too long to knit.
+One might wonder why in the function `kernel_matrix_vectorized()` we fill the matrix `Ynorm` by row. Afterall `R` works with column-major storage so this should be inefficient. One can compare filling in a matrix by row versus filling it by column and then taking the transpose in different cases:
+
+* Number of rows < Number of columns
 ```{r, eval=FALSE}
-n <- 10000
-microbenchmark(matrix(0, n, n, byrow=TRUE))
-microbenchmark(t(matrix(0, n, n)))
+nrows <- 100
+ncols <- 1000
+microbenchmark(
+  matrix(0, nrows, ncols, byrow=TRUE),
+  t(matrix(0, nrows, ncols))
+  )
 ```
+* Number of rows = Number of columns
+```{r, eval=FALSE}
+nrows <- 1000
+ncols <- 1000
+microbenchmark(
+  matrix(0, nrows, ncols, byrow=TRUE),
+  t(matrix(0, nrows, ncols))
+  )
+```
+* Number of rows > Number of columns
+```{r, eval=FALSE}
+nrows <- 1000
+ncols <- 100
+microbenchmark(
+  matrix(0, nrows, ncols, byrow=TRUE),
+  t(matrix(0, nrows, ncols))
+  )
+```
+
+Generally, `byrow=TRUE` is faster, except when the number of rows is smaller than the number of columns. One could see if implementing an if-statement checking for `n<m` and then using `t()` rather than `byrow=TRUE` would lead to serious performance improvement.
 
 
 
