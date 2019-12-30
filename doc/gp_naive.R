@@ -1,6 +1,4 @@
-gp_naive <- function(xtrain, ytrain, xtest, sigma_n){
-  # Kernel bandwidth squared
-  sigmasq <- compute_sigmasq(xtrain)
+gp_naive <- function(xtrain, ytrain, xtest, sigma_n, sigmasq){
   # Find kernel matrices in vectorized form
   K  <-  kernel_matrix(xtrain, xtrain, sigmasq) 
   Ks <-  kernel_matrix(xtest,  xtrain, sigmasq)

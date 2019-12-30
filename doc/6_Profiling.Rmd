@@ -7,8 +7,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Theoretical Background
-Add some theory of Gaussian Processes
+## Mathematical Formulas
+The derivation of Gaussian Process regression formulas are beyond the scope of this portfolio, however formulas are replicated here to aid understanding.
+
 
 ## Implementations
 ### Data Generation and Problem Settings
@@ -17,20 +18,21 @@ Import the necessary packages. The library `provfis` is a stochastic profiler an
 library(profvis)
 library(tidyverse)
 library(MASS)
+library(microbenchmark)
 ```
 
 First, let's decide some parameters and settings such as the amount of training and testing data.
 ```{r}
 # Number of data points for plotting & Bandwidth squared of the RBF kernel
-ntest <- 500
+ntest <- 2000
+# Characteristic Length-scale for kernel
+sigmasq <- 1.0
 # Number of training points, standard deviation of additive noise
-ntrain <- 100
+ntrain <- 50
 sigma_n <- 0.5
 # Define number of samples for prior gp mvn and posterior gp mvn to take
-nprior_samples <- 3
-npost_samples <- 3
-# Reproducibility
-set.seed(12345)
+nprior_samples <- 5
+npost_samples <- 5
 ```
 Define some helper functions. In particular, the kernel function is a squared exponential. The bandwidth is computed as the median of all pairwise distances. We also define a matrix that applies the squared exponential to rows of two matrices, i.e. it computes the kernel matrix $K(X, Y)$. for two matrices $X$ and $Y$. Finally, we also have a regression function which represents the true structure of the data. This is just a quintic polynomial for simplicity, but can be replaced by more complicated functions.
 ```{r}
@@ -75,14 +77,14 @@ xtest <- matrix(seq(-5,5, len=ntest))
 The firt implementation that we look at is naive in the sense that it basically blindly copies the operations. This means that we invert $K + \sigma_n^2 I$ directly.
 ```{r}
 source("gp_naive.R", keep.source = TRUE)
-profvis(result <- gp_naive(xtrain, ytrain, xtest, sigma_n))
+profvis(result <- gp_naive(xtrain, ytrain, xtest, sigma_n, sigmasq))
 ```
 
 ### Smart Implementation
 This implementation can also be used _online_. It is recommended in the "Gaussian Processes for Machine Learning" book.
 ```{r}
 source("gp_online.R", keep.source = TRUE)
-profvis(result_online <- gp_online(xtrain, ytrain, xtest, sigma_n))
+profvis(result_online <- gp_online(xtrain, ytrain, xtest, sigma_n, sigmasq))
 ```
 
 ### Implementation using a vectorized kernel matrix
@@ -110,7 +112,7 @@ using this, we get
 
 ```{r}
 source("gp_online_vect.R", keep.source = TRUE)
-profvis(gp_online_vect(xtrain, ytrain, xtest, sigma_n))
+profvis(gp_online_vect(xtrain, ytrain, xtest, sigma_n, sigmasq))
 ```
 
 We can see that this implementation uses much less memory and it's much faster.
@@ -120,7 +122,7 @@ We can combine these ideas to obtain a much faster implementation.
 
 ```{r}
 source("gp_completely_vectorized.R", keep.source = TRUE)
-profvis(gp_completely_vectorized(xtrain, ytrain, xtest, sigma_n), interval=0.005)
+profvis(gp_completely_vectorized(xtrain, ytrain, xtest, sigma_n, sigmasq), interval=0.005)
 ```
 
 
@@ -129,7 +131,7 @@ profvis(gp_completely_vectorized(xtrain, ytrain, xtest, sigma_n), interval=0.005
 ### Before seeing training data
 Before seeing the training data we only have the test data. The Gaussian Process will therefore predict random (smooth) functions with mean zero.
 ```{r}
-Kss <- kernel_matrix_vectorized(xtest, compute_sigmasq(xtest))
+Kss <- kernel_matrix_vectorized(xtest, sigmasq)
 # Sample nprior_samples Multivariate Normals with mean zero and variance-covariance
 # being the kernel matrix
 data.frame(x=xtest, t(mvrnorm(nprior_samples, rep(0, length=ntest), Kss))) %>% 
@@ -149,10 +151,12 @@ data.frame(x=xtest, t(mvrnorm(nprior_samples, rep(0, length=ntest), Kss))) %>%
 We only need to find the predicted mean and the predicted variance.
 ```{r}
 # Get predicitons
-#results <- gp_completely_vectorized(xtrain, ytrain, xtest, sigma_n)
-results <- gp_naive(xtrain, ytrain, xtest, sigma_n)
+results <- gp_completely_vectorized(xtrain, ytrain, xtest, sigma_n, sigmasq)
+#results <- gp_naive(xtrain, ytrain, xtest, sigma_n, sigmasq)
 gpmean <- results[[1]]
 gpvcov <- results[[2]]
+# for plotting
+dftrain = data.frame(xtrain=xtrain, ytrain=ytrain)
 # Plot
 data.frame(x=xtest, t(mvrnorm(npost_samples, gpmean, gpvcov))) %>% 
   setNames(c("x", sprintf("Sample %s", 1:npost_samples))) %>% 
@@ -164,9 +168,19 @@ data.frame(x=xtest, t(mvrnorm(npost_samples, gpmean, gpvcov))) %>%
     geom_line(aes(color=`MVN Samples`)) +
     geom_line(aes(y=gpmean), size=1) +
     geom_line(aes(y=ytrue), color="darkred", lty=2) + 
-    ggtitle(paste(npost_samples, "MVN Samples after seeing the data")) + 
+    geom_point(data=dftrain, aes(x=xtrain, y=ytrain), color="red") +
+    ggtitle(paste(npost_samples, "MVN Samples after seeing", ntrain, "data points")) + 
     theme(plot.title=element_text(hjust=0.5))
     
+```
+
+
+# Note on Vectorized Kernel Matrix
+One might wonder why in the function `kernel_matrix_vectorized()` we fill the matrix `Ynorm` by row. Afterall `R` works with column-major storage so this should be inefficient. While it is true that it is inefficient, it is more efficient than transposing the matrix. One can benchmark the two options using the code below. The code block here is set with `eval=FALSE` because otherwise this markdown script would take too long to knit.
+```{r, eval=FALSE}
+n <- 10000
+microbenchmark(matrix(0, n, n, byrow=TRUE))
+microbenchmark(t(matrix(0, n, n)))
 ```
 
 

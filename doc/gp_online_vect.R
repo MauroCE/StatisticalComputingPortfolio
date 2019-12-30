@@ -1,7 +1,5 @@
 # uses vectorized kernel matrix
-gp_online_vect <- function(xtrain, ytrain, xtest, sigma_n){
-  # Find bandwidth as median of pairwise distances
-  sigmasq <- compute_sigmasq(xtrain)
+gp_online_vect <- function(xtrain, ytrain, xtest, sigma_n, sigmasq){
   # Find kernel matrix
   K <- kernel_matrix_vectorized(xtrain, sigmasq) 
   # Cholesky factor for K + sigma^2 * I

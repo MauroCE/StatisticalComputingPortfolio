@@ -1,6 +1,4 @@
-gp_online <- function(xtrain, ytrain, xtest, sigma_n){
-  # Find bandwidth as median of pairwise distances
-  sigmasq <- compute_sigmasq(xtrain)
+gp_online <- function(xtrain, ytrain, xtest, sigma_n, sigmasq){
   # Find kernel matrix
   K <- kernel_matrix(xtrain, xtrain, sigmasq) 
   # Cholesky factor for K + sigma^2 * I
