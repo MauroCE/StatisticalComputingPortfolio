@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Mathematical Formulas
 The derivation of Gaussian Process regression formulas are beyond the scope of this portfolio, however formulas are replicated here to aid understanding.
 
-
 ## Implementations
 ### Data Generation and Problem Settings
 Import the necessary packages. The library `provfis` is a stochastic profiler and can be used to profile our code.
@@ -24,11 +23,11 @@ library(microbenchmark)
 First, let's decide some parameters and settings such as the amount of training and testing data.
 ```{r}
 # Number of data points for plotting & Bandwidth squared of the RBF kernel
-ntest <- 2000
+ntest <- 500
 # Characteristic Length-scale for kernel
 sigmasq <- 1.0
 # Number of training points, standard deviation of additive noise
-ntrain <- 50
+ntrain <- 10
 sigma_n <- 0.5
 # Define number of samples for prior gp mvn and posterior gp mvn to take
 nprior_samples <- 5
@@ -53,12 +52,6 @@ kernel_matrix <- function(X, Xstar, sigmasq){
       )
     )
   return(K)
-}
-compute_sigmasq <- function(X){
-  # Compute distance matrix expanding the norm. Return its median
-  Xcross <- tcrossprod(X)
-  Xnorms <- matrix(diag(Xcross), nrow(X), nrow(X), byrow=TRUE)
-  return(median(Xnorms - 2*Xcross + t(Xnorms)))
 }
 regression_function <- function(x){
     val <- (x+5)*(x+2)*(x)*(x-4)*(x-3)/10 + 2
@@ -124,8 +117,6 @@ We can combine these ideas to obtain a much faster implementation.
 source("gp_completely_vectorized.R", keep.source = TRUE)
 profvis(gp_completely_vectorized(xtrain, ytrain, xtest, sigma_n, sigmasq), interval=0.005)
 ```
-
-
 
 ## Visualizations
 ### Before seeing training data
