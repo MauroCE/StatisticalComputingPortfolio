@@ -21,7 +21,7 @@ sigma.n <- 0.5
 nprior_samples <- 3
 npost_samples <- 3
 # Set a seed in order to change the code
-#set.seed(12345)
+set.seed(12345)
 ```
 Define a squared exponential kernel, a function to calculate kernel matrix K between two matrices, and the regression function that will be used for training.
 ```{r}
