@@ -1,0 +1,263 @@
+---
+title: "Optimization for Classification"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(MASS)
+library(microbenchmark)
+library(tidyverse)
+```
+
+# Utility functions
+
+```{r}
+kernel_matrix <- function(X, sigmasq, Y=NULL){
+  if (is.null(Y)){
+    Y <- X  # TODO: This might be risky for big matrices. How does R copy work? Maybe split the code into two?
+  }
+  n <- nrow(X)
+  m <- nrow(Y)
+  # Find three matrices above
+  Xnorm <- matrix(apply(X^2, 1, sum), n, m)
+  Ynorm <- matrix(apply(Y^2, 1, sum), n, m, byrow=TRUE)
+  XY <- tcrossprod(X, Y)
+  # TODO: In this case do we use median of XY? If we are using it for prediction
+  # I think sigmasq should be found only from training set, not from testing set.
+  # Therefore we should pass sigmasq as a parameter in this function, and should be calculated 
+  # beforehand.
+  return(exp(-(Xnorm - 2*XY + Ynorm) / (2*sigmasq)))
+}
+```
+
+# Binary Dataset Generation
+### Settings for Data Creation
+```{r}
+# Settings
+n1 <- 100
+n2 <- 100
+m1 <- c(6, 6)
+m2 <- c(-1, 1)
+s1 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
+s2 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
+# Set a seed if you want
+set.seed(123)
+```
+### Data Generating Function
+```{r}
+generate_binary_data <- function(n1, n2, m1, s1, m2, s2, label1=1, label2=-1){
+  # x1, x2 and y for both classes
+  class1 <- mvrnorm(n1, m1, s1)
+  class2 <- mvrnorm(n2, m2, s2)
+  y      <- c(rep(label1, n1), rep(label2, n2))
+  # Generate dataframe
+  data <- data.frame(rbind(class1, class2), y)
+  return(data)
+}
+data <- generate_binary_data(n1, n2, m1, s1, m2, s2)
+```
+### Data Appearance
+```{r}
+plot_dataset <- function(data){
+  p <- ggplot(data=data, aes(x=X1, y=X2, color=as_factor(y))) + 
+        geom_point() + 
+        theme(plot.title=element_text(hjust=0.5, size=20)) + 
+        labs(color="Class", title="Linearly Separable Dataset")
+  return(p)
+}
+plot_dataset(data)
+```
+
+# Fisher Discriminant Analysis
+### Data Generation
+First, get the design matrix `X` and the response vector `y`.
+```{r}
+set.seed(123)
+# We want it to be 0, 1
+fda_data <- generate_binary_data(n1, n2, m1, s1, m2, s2, label1=0, label2=1)
+X_fda <- fda_data %>% select(-y) %>% as.matrix
+y_fda <- fda_data %>% select(y) %>% as.matrix
+plot_dataset(fda_data)
+```
+
+### Objective Function
+Let's define the objective function of Fisher's discriminant analysis.
+```{r}
+fda_objective_factory <- function(X, flags){
+  fda_objective <- function(w){
+    # Calculate embedded dataset center
+    mu <- mean(X %*% w)
+    # Store embedded center for class k
+    muks <- rep(0, ncol(flags))
+    # Store within class scatterness
+    swks <- rep(0, ncol(flags))
+    # Store between class scatterness
+    sbks <- rep(0, ncol(flags))
+    for (class in 1:ncol(flags)){
+      Xk <- X[flags[, class], ]
+      mk <- mean(Xk %*% w)
+      muks[class] <- mk
+      swks[class] <- sum(((Xk %*% w) - mk)^2)
+      sbks[class] <- sum(flags[, class]) * (mk - mu)^2
+    }
+    # Calculate objective value
+    value <- sum(sbks) / sum(swks)
+    # remember we want to maximize, but optim minimizes
+    return(-value)
+  }
+  return(fda_objective)
+}
+```
+
+### Find embedding $w$
+Let's create a function that given `y` creates a `flags` matrix.
+```{r}
+make_flags <- function(y){
+  # Find all class labels. We assume 0, ..., K-1 
+  classes <- unique(y)
+  # Spread to get one-hot encoding with logicals
+  flags <- data.frame(y=y) %>% 
+            mutate(rn=row_number(), value=1) %>% 
+            spread(y, value, fill=0) %>% 
+            select(-rn) %>% as.matrix %>% as.logical %>%
+            matrix(nrow=nrow(y))
+  return(flags)
+}
+```
+
+Now we get a function from the factory and we try to optimize it with `optim`.
+```{r}
+flags <- make_flags(y_fda)
+fda_objective <- fda_objective_factory(X_fda, flags)
+w_start <- matrix(c(1, 1), ncol=1)
+sol <- optim(par=w_start, fn=fda_objective, method="BFGS")$par
+```
+
+### Plot Solution
+I can plot `w` and the embedded dataset.
+```{r}
+wdf <- data.frame(x=sol[1], y=sol[2], x0=c(0.0), y0=c(0.0))
+# find unit vector w
+sol_unit <- sol / sqrt(sum(sol^2))
+# Embed
+dot_products <- X_fda %*% sol_unit
+# now get the new points, which should lie on a line
+x_emb <- dot_products %*% t(sol_unit)
+dfembed <- data.frame(x1=x_emb[, 1], x2=x_emb[, 2], y=y_fda)
+# make a dataframe with the three means
+datamean <- apply(X_fda, 2, mean)
+c1mean   <- apply(X_fda[flags[, 1], ], 2, mean)
+c2mean   <- apply(X_fda[flags[, 2], ], 2, mean)
+dfclassmeans <- data.frame(
+  x1=c(c1mean[1], c2mean[1]),
+  x2=c(c1mean[2], c2mean[2]),
+  y= c(0, 1)
+)
+dfmean <- data.frame(datameanx1=datamean[1], datameanx2=datamean[2])
+ggplot() + 
+  geom_point(data=dfmean, aes(x=datameanx1, y=datameanx2), color="black", size=5, shape=3) +
+  geom_point(data=dfclassmeans, aes(x=x1, y=x2, color=as_factor(y)), shape=3, size=8, show.legend = FALSE) +
+  geom_point(data=fda_data, aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2) +
+  geom_point(data=dfembed, aes(x=x1, y=x2, color=as_factor(y))) + 
+  geom_segment(data=wdf, aes(x=x0, y=y0, xend=x, yend=y, color="w"), arrow = arrow(length=unit(0.15, "inches")), color="darkred", size=1) + 
+  labs(color="Class", title="FDA-Embedded Dataset",
+       x="X1", y="X2") + 
+  theme(plot.title=element_text(hjust=0.5, size=20))
+```
+
+Let's package it up as an S3 object.
+
+```{r}
+fda <- function(X, y){
+  # Use y to create a logical one-hot encoding called `flags`
+  classes <- unique(y)
+  flags <- data.frame(y=y) %>% 
+            mutate(rn=row_number(), value=1) %>% 
+            spread(y, value, fill=0) %>% 
+            select(-rn) %>% as.matrix %>% as.logical %>%
+            matrix(nrow=nrow(y))
+  # Define objective function 
+  fda_objective <- function(w){
+    mu <- mean(X %*% w)           # embedded DATASET center
+    muks <- rep(0, ncol(flags))   # embedded center for class k
+    swks <- rep(0, ncol(flags))   # within class scatterness
+    sbks <- rep(0, ncol(flags))   # between class scatterness
+    for (class in 1:ncol(flags)){
+      Xk <- X[flags[, class], ]
+      mk <- mean(Xk %*% w)
+      muks[class] <- mk
+      swks[class] <- sum(((Xk %*% w) - mk)^2)
+      sbks[class] <- sum(flags[, class]) * (mk - mu)^2
+    }
+    # Calculate objective value
+    value <- sum(sbks) / sum(swks)
+    return(-value) # remember we want to maximize, but optim minimizes
+  }
+  # Optimize
+  w_start <- matrix(1, nrow=ncol(X), ncol=1)
+  sol <- optim(par=w_start, fn=fda_objective, method="BFGS")$par
+  # Return object
+  fda_object <- list(sol=sol, flags=flags, X=X, y=y)
+  class(fda_object) <- "FDA"
+  return(fda_object)
+}
+```
+
+Define plotting
+```{r}
+plot.FDA <- function(x, y=NULL, ...){
+  # Find unit vector of w and take dot product
+  sol_unit <- x$sol / sqrt(sum(x$sol^2))
+  dot_products <-  x$X %*% sol_unit
+  if (ncol(x$X) > 2){
+    # Plot on a simple horizontal line
+  df <- data.frame(x1=dot_products, x2=rep(0, nrow(dot_products)), y=x$y)
+  p <- ggplot(data=df) + 
+        geom_point(aes(x=x1, y=x2, color=as_factor(y)))
+  } else {
+    # Find embedded points in 2D
+    x_emb <- dot_products %*% t(sol_unit)
+    dfembed <- data.frame(x1=x_emb[, 1], x2=x_emb[, 2], y=y_fda)
+    # Find data mean, and mean per cluster
+    datamean <- apply(x$X, 2, mean)
+    datamean <- data.frame(x=datamean[1], y=datamean[2])
+    meanmatrix <- apply(x$flags, 2, 
+          function(f){
+            apply(x$X[f, ], 2, mean)
+          })
+    dfclassmeans <- data.frame(t(meanmatrix), y=(1:ncol(meanmatrix) - 1))
+    # Plot
+    p <- ggplot() + 
+          geom_point(data=data.frame(x$X, x$y), aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2) + 
+          geom_point(data=dfclassmeans, aes(x=X1, y=X2, color=as_factor(y)), shape=3, size=8, show.legend=FALSE) + 
+          geom_point(data=datamean, aes(x=x, y=y), size=8, shape=3, color="black") +
+          geom_point(data=dfembed, aes(x=x1, y=x2, color=as_factor(y))) + 
+          geom_segment(data=wdf, aes(x=x0, y=y0, xend=x, yend=y, color="w"), 
+                       arrow = arrow(length=unit(0.15, "inches")), color="darkred", size=1)
+  }
+  p + 
+    labs(color="Class", title="FDA-Embedded Dataset", x="X1", y="X2") + 
+    theme(plot.title=element_text(hjust=0.5, size=20))
+}
+```
+
+```{r}
+fda_object <- fda(X_fda, y_fda)
+plot(fda_object)
+```
+
+
+
+# Logistic Regression
+
+
+
+
+
+
+
+
