@@ -32,6 +32,33 @@ kernel_matrix <- function(X, sigmasq, Y=NULL){
   # beforehand.
   return(exp(-(Xnorm - 2*XY + Ynorm) / (2*sigmasq)))
 }
+
+# Creates a logical one-hot encoding, assumes classes 0, .. , K-1
+make_flags <- function(y){
+  classes <- unique(y)
+  flags <- data.frame(y=y) %>% 
+            mutate(rn=row_number(), value=1) %>% 
+            spread(y, value, fill=0) %>% 
+            select(-rn) %>% as.matrix %>% as.logical %>%
+            matrix(nrow=nrow(y)) 
+  return(flags)
+}
+# Calculates a function (usually mean or sd) for all classes
+calc_func_per_class <- function(X, y, func){
+  flags <- make_flags(y)
+  return(t(apply(flags, 2, function(f) apply(X[f, ], 2, func))))
+}
+# Calculates density of a gaussian
+gaussian_density <- function(x, mu, sigma, log=FALSE){
+  # Cholesky, L is upper triangular
+  L <- chol(sigma)
+  kernel <- -0.5*crossprod(forwardsolve(t(L), x - mu))
+  value <- -length(x)*log(2*pi)/2 -sum(log(diag(L))) + kernel
+  if (!log){
+    value <- exp(value)
+  }
+  return(value[[1]])
+}
 ```
 
 # Binary Dataset Generation
@@ -84,102 +111,13 @@ y_fda <- fda_data %>% select(y) %>% as.matrix
 plot_dataset(fda_data)
 ```
 
-### Objective Function
-Let's define the objective function of Fisher's discriminant analysis.
-```{r}
-fda_objective_factory <- function(X, flags){
-  fda_objective <- function(w){
-    # Calculate embedded dataset center
-    mu <- mean(X %*% w)
-    # Store embedded center for class k
-    muks <- rep(0, ncol(flags))
-    # Store within class scatterness
-    swks <- rep(0, ncol(flags))
-    # Store between class scatterness
-    sbks <- rep(0, ncol(flags))
-    for (class in 1:ncol(flags)){
-      Xk <- X[flags[, class], ]
-      mk <- mean(Xk %*% w)
-      muks[class] <- mk
-      swks[class] <- sum(((Xk %*% w) - mk)^2)
-      sbks[class] <- sum(flags[, class]) * (mk - mu)^2
-    }
-    # Calculate objective value
-    value <- sum(sbks) / sum(swks)
-    # remember we want to maximize, but optim minimizes
-    return(-value)
-  }
-  return(fda_objective)
-}
-```
-
-### Find embedding $w$
-Let's create a function that given `y` creates a `flags` matrix.
-```{r}
-make_flags <- function(y){
-  # Find all class labels. We assume 0, ..., K-1 
-  classes <- unique(y)
-  # Spread to get one-hot encoding with logicals
-  flags <- data.frame(y=y) %>% 
-            mutate(rn=row_number(), value=1) %>% 
-            spread(y, value, fill=0) %>% 
-            select(-rn) %>% as.matrix %>% as.logical %>%
-            matrix(nrow=nrow(y))
-  return(flags)
-}
-```
-
-Now we get a function from the factory and we try to optimize it with `optim`.
-```{r}
-flags <- make_flags(y_fda)
-fda_objective <- fda_objective_factory(X_fda, flags)
-w_start <- matrix(c(1, 1), ncol=1)
-sol <- optim(par=w_start, fn=fda_objective, method="BFGS")$par
-```
-
-### Plot Solution
-I can plot `w` and the embedded dataset.
-```{r}
-wdf <- data.frame(x=sol[1], y=sol[2], x0=c(0.0), y0=c(0.0))
-# find unit vector w
-sol_unit <- sol / sqrt(sum(sol^2))
-# Embed
-dot_products <- X_fda %*% sol_unit
-# now get the new points, which should lie on a line
-x_emb <- dot_products %*% t(sol_unit)
-dfembed <- data.frame(x1=x_emb[, 1], x2=x_emb[, 2], y=y_fda)
-# make a dataframe with the three means
-datamean <- apply(X_fda, 2, mean)
-c1mean   <- apply(X_fda[flags[, 1], ], 2, mean)
-c2mean   <- apply(X_fda[flags[, 2], ], 2, mean)
-dfclassmeans <- data.frame(
-  x1=c(c1mean[1], c2mean[1]),
-  x2=c(c1mean[2], c2mean[2]),
-  y= c(0, 1)
-)
-dfmean <- data.frame(datameanx1=datamean[1], datameanx2=datamean[2])
-ggplot() + 
-  geom_point(data=dfmean, aes(x=datameanx1, y=datameanx2), color="black", size=5, shape=3) +
-  geom_point(data=dfclassmeans, aes(x=x1, y=x2, color=as_factor(y)), shape=3, size=8, show.legend = FALSE) +
-  geom_point(data=fda_data, aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2) +
-  geom_point(data=dfembed, aes(x=x1, y=x2, color=as_factor(y))) + 
-  geom_segment(data=wdf, aes(x=x0, y=y0, xend=x, yend=y, color="w"), arrow = arrow(length=unit(0.15, "inches")), color="darkred", size=1) + 
-  labs(color="Class", title="FDA-Embedded Dataset",
-       x="X1", y="X2") + 
-  theme(plot.title=element_text(hjust=0.5, size=20))
-```
-
-Let's package it up as an S3 object.
+### FDA Class
+Define an S3 object performing FDA.
 
 ```{r}
 fda <- function(X, y){
   # Use y to create a logical one-hot encoding called `flags`
-  classes <- unique(y)
-  flags <- data.frame(y=y) %>% 
-            mutate(rn=row_number(), value=1) %>% 
-            spread(y, value, fill=0) %>% 
-            select(-rn) %>% as.matrix %>% as.logical %>%
-            matrix(nrow=nrow(y))
+  flags <- make_flags(y)
   # Define objective function 
   fda_objective <- function(w){
     mu <- mean(X %*% w)           # embedded DATASET center
@@ -207,7 +145,8 @@ fda <- function(X, y){
 }
 ```
 
-Define plotting
+### FDA Plot Method
+
 ```{r}
 plot.FDA <- function(x, y=NULL, ...){
   # Find unit vector of w and take dot product
@@ -225,11 +164,10 @@ plot.FDA <- function(x, y=NULL, ...){
     # Find data mean, and mean per cluster
     datamean <- apply(x$X, 2, mean)
     datamean <- data.frame(x=datamean[1], y=datamean[2])
-    meanmatrix <- apply(x$flags, 2, 
-          function(f){
-            apply(x$X[f, ], 2, mean)
-          })
-    dfclassmeans <- data.frame(t(meanmatrix), y=(1:ncol(meanmatrix) - 1))
+    meanmatrix <- calc_func_per_class(x$X, x$y, mean)
+    dfclassmeans <- data.frame(meanmatrix, y=(1:nrow(meanmatrix) - 1))
+    # Dataframe to plot w
+    wdf <- data.frame(x=x$sol[1], y=x$sol[2], x0=c(0.0), y0=c(0.0))
     # Plot
     p <- ggplot() + 
           geom_point(data=data.frame(x$X, x$y), aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2) + 
@@ -245,14 +183,206 @@ plot.FDA <- function(x, y=NULL, ...){
 }
 ```
 
+We can see this in action as follows
+
 ```{r}
 fda_object <- fda(X_fda, y_fda)
 plot(fda_object)
 ```
 
+# Naive Bayes
+### Mathematics
+$$
+\widehat{y} = {\arg \max}_{k\in\left\{1, \ldots, K\right\}} p(C_k) \prod_{i=1}^N p(x_i \mid C_k)
+$$
+Let's assume each class is Gaussian distributed. 
+
+### Naive Bayes Class
+```{r}
+naive_bayes <- function(X, y){
+  # For every class, find mean and variance (one class per row)
+  means <- calc_func_per_class(X, y, mean)
+  vars  <- calc_func_per_class(X, y, function(x) sd(x)^2)
+  # Create a gaussian for each class
+  nb <- list(means=means, vars=vars, X=X, y=y)
+  class(nb) <- "naive_bayes"
+  return(nb)
+}
+```
+
+### Predict Method
+```{r}
+predict.naive_bayes <- function(x, xtest){
+  # for every test point (row of xtest), want to calculate the density value for
+  # every class, and pick the highest one. Let's instantiate a matrix of the correct dimensions.
+  table <- matrix(0, nrow=nrow(xtest), ncol=nrow(x$means))  # number of test points times n classes
+  # need two for loops unfortunately
+  for (r_ix in 1:nrow(xtest)){
+    for (c_ix in 1:nrow(x$means)){
+      table[r_ix, c_ix] <- gaussian_density(
+        x=matrix(as.double(xtest[r_ix, ])), 
+        mu=matrix(x$means[c_ix, ]), 
+        sigma=diag(x$vars[c_ix, ]), log=TRUE)
+    }
+  }
+  classes <- apply(table, 1, which.max)
+  return(classes - 1)
+}
+```
+
+### Plot Method for Naive Bayes
+```{r}
+plot.naive_bayes <- function(x, y=NULL, ngrid=75, ...){
+  if (ncol(x$X) > 2) {
+    print("Naive Bayes plotting for more than 2 dimensions, not implemented.")
+  } else {
+    # Generate a grid of points on X
+    coord_range <- apply(x$X, 2, range)
+    grid <- expand.grid(
+      X1=seq(from=coord_range[1, 1], to=coord_range[2, 1], length=ngrid),
+      X2=seq(from=coord_range[1, 2], to=coord_range[2, 2], length=ngrid)
+      )
+    # Use naive bayes to predict at each point of the grid
+    cl <- predict(x, grid)
+    dfgrid <- data.frame(grid, y=cl)
+    # plot those points
+    ggplot() + 
+      geom_point(data=dfgrid, aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2, size=0.5) + 
+      geom_point(data=data.frame(x$X, y=x$y), aes(x=X1, y=X2, color=as_factor(y))) + 
+      labs(color="Class", title="Naive Bayes Decision Boundary") + 
+      theme(plot.title=element_text(hjust=0.5, size=20))
+  }
+}
+```
+
+Let's see this in action.
+
+```{r}
+nb <- naive_bayes(X_fda, y_fda)
+plot(nb)
+```
 
 
 # Logistic Regression
+### Mathematical Setting
+USE SONG NOTATION. $y_i\in\{+1, -1\}$. Cost function is
+
+$$
+-log(p(\mathcal{D}\mid \beta) = \sum_{i=1}^n \log\left(1 + \exp\left(-y_i({\bf{x}_i^\top \beta})\right)\right)
+$$
+Maximizing the likelihood is equivalent to minimizing the negative log-likelihood. Therefore we want
+$$
+\min_{\beta} \sum_{i=1}^n \log\left(1 + \exp\left(-y_i({\bf{x}_i^\top \beta})\right)\right)
+$$
+Regularized (MAP with Gaussian) is
+$$
+\min_{\beta} \frac{1}{2} \beta^\top\beta + \sum_{i=1}^n \log\left(1 + \exp\left(-y_i({\bf{x}_i^\top \beta})\right)\right)
+$$
+
+### Implementation
+
+```{r}
+data <- generate_binary_data(n1, n2, m1, s1, m2, s2)  # 1, -1
+X <- data %>% select(-y) %>% as.matrix %>% cbind(1, .)
+y <- data %>% select(y) %>%  as.matrix
+```
+
+### Object-Oriented
+```{r}
+logistic_regression <- function(X, y, method="BFGS"){
+  # X needs to have first column of 1s for bias term
+  if (sum(X[, 1] == 1) != nrow(X)){
+    print("The first column of X must have only 1s. Added a column.")
+    X <- cbind(1, X)
+  }
+  # Maximum Likelihood Estimator. Assume y in {+1, -1}
+  beta <- optim(
+    par=rep(0, ncol(X)),
+    fn=function(b) sum(log(exp(y * (X %*% b)) + 1)),
+    method=method)$par
+  # S3 Object
+  lr <- list(X=X, y=y, method=method, beta=beta)
+  class(lr) <- "logistic_regression"
+  return(lr)
+}
+```
+
+Define a `predict` method.
+```{r}
+predict.logistic_regression <- function(x, xtest){
+  # predictions consist of probabilities. In this case we use a simple decision
+  # rule: > 0.5 then it's class 1 
+  # round transforms to prob=1, prob=0. Then 1 - ... to assign correct classes
+  classes  <- round(1.0 / (1.0 + exp(xtest %*% x$beta)))
+  classes[classes < 1] <- -1
+  return(classes)
+}
+```
+
+Define a plotting method.
+```{r}
+plot.logistic_regression <- function(x, y=NULL, ngrid=70, ...){
+  # Grid to show decision boundary 
+  coord_range <- apply(x$X, 2, range)
+  grid <- expand.grid(
+      X1=seq(from=coord_range[1, 2], to=coord_range[2, 2], length=ngrid),
+      X2=seq(from=coord_range[1, 3], to=coord_range[2, 3], length=ngrid)
+  )
+  # need to append 1 and transform to numeric, somehow it's losing it
+  grid <- matrix(as.numeric(unlist(grid)), nrow=ngrid^2)
+  # Predict at each point of the grid
+  cl <- predict(x, cbind(1, grid))
+  dfgrid <- data.frame(grid, y=cl)
+  # plot those points
+  ggplot() + 
+    geom_point(data=dfgrid, aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2, size=0.5) + 
+    geom_point(data=data.frame(x$X, y=x$y), aes(x=X1, y=X2, color=as_factor(y))) + 
+    labs(color="Class", title="Logistic Regression Decision Boundary") + 
+    theme(plot.title=element_text(hjust=0.5, size=20))
+}
+```
+
+Let's see this in action.
+```{r}
+lr <- logistic_regression(X, y)
+plot(lr)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
