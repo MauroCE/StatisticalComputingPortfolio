@@ -1,0 +1,530 @@
+---
+title: "Logistic Regression"
+output: html_document
+---
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{listings}
+\usepackage{color}
+\usepackage[T1]{fontenc}
+\usepackage{fullpage}
+\usepackage{hyperref}
+\usepackage{amssymb}
+\usepackage{fullpage}
+\usepackage{color}
+\usepackage{algorithm2e}
+\usepackage{bbm}
+\DeclareRobustCommand{\rchi}{{\mathpalette\irchi\relax}}
+\newcommand{\irchi}[2]{\raisebox{\depth}{$#1\chi$}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newenvironment{rcases}
+  {\left.\begin{aligned}}
+  {\end{aligned}\right\rbrace}
+\newcommand{\def}{\overset{\text{def}}{:=}}
+\newcommand{\lop}{\mathcal{L}}
+\newcommand{\vect}[1]{\boldsymbol{\mathbf{#1}}}
+\newcommand{\norm}[1]{||#1||}
+\newcommand{\vx}{\vect{x}}
+\newcommand{\vb}{\vect{b}}
+\newcommand{\vy}{\vect{y}}
+\newcommand{\vz}{\vect{z}}
+\newcommand{\ve}{\vect{e}}
+\newcommand{\vc}{\vect{c}}
+\newcommand{\vr}{\vect{r}}
+\newcommand{\vphi}{\vect{\phi}}
+\newcommand{\vf}{\vect{f}}
+\newcommand{\vY}{\vect{Y}}
+\newcommand{\vX}{\vect{X}}
+\newcommand{\vw}{\vect{w}}
+\newcommand{\thetahatis}{\widehat{\theta}^{(s)}_i}
+\newcommand{\thetahat}[1]{\widehat{\theta}^{(#1)}_i}
+\newcommand{\vm}{\vect{m}}
+\newcommand{\redmath}[1]{\mathbin{\textcolor{red}{\vect{#1}}}}
+\newcommand{\redtext}[1]{\textcolor{red}{\vect{#1}}}
+\newcommand{\vzero}{\vect{0}}
+\newcommand{\vt}{\vect{t}}
+\newcommand{\linearpredictor}{\vx_i^T\vbeta}
+\newcommand{\vmu}{\vect{\mu}}
+\newcommand{\vnu}{\vect{\nu}}
+\newcommand{\veta}{\vect{\eta}}
+\newcommand{\vbeta}{\vect{\beta}}
+\newcommand{\vepsilon}{\vect{\epsilon}}
+\newcommand{\Pbb}{\mathbb{P}}
+\newcommand{\Ebb}{\mathbb{E}}
+\newcommand{\vdelta}{\vect{\delta}}
+\newcommand{\Rbb}{\mathbb{R}}
+\newcommand{\vxi}{\vect{\xi}}
+\newcommand{\sigmalg}{\sigma\text{-algebra}}
+\newcommand{\vu}{\vect{u}}
+\newcommand{\vW}{\vect{W}}
+\newcommand{\vlambda}{\vect{\lambda}}
+\newcommand{\dataset}{\mathcal{D}}
+\newcommand{\vS}{\vect{S}}
+\newcommand{\sample}{\vz^{(l)}}
+\newcommand{\MYhref}[3][blue]{\href{#2}{\color{#1}{#3}}}
+\newcommand{\sol}[1]{\vx^{(#1)}}
+\newcommand{\qtext}[1]{\quad\quad \text{#1}}
+\newcommand{\vtheta}{\vect{\theta}}
+\newcommand{\bi}[1]{\textbf{\textit{#1}}}
+\newcommand{\iid}{\overset{\text{i.i.d.}}{\sim}}
+\newcommand{\uniform}{\mathcal{U}(0, 1)}
+\newcommand{\qimplies}{\quad\Longrightarrow\quad}
+\newcommand{\tp}{\tilde{p}}
+\newcommand{\nul}{\Theta^{(0)}}
+\newcommand{\alter}{\Theta^{(1)}}
+\newcommand{\const}{\mathcal{Z}}
+\newcommand{\tq}{\tilde{q}}
+\newcommand{\tvx}{\widetilde{\vx}}
+\newcommand{\vK}{\vect{K}}
+\newcommand{\tr}{\tilde{r}}
+\newcommand{\like}{\mathcal{L}}
+\newcommand{\kl}[2]{\text{KL}(#1\,\,||\,\,#2)}
+\newcommand{\logit}[1]{\log\left(\frac{#1}{1-#1}\right)}
+\newcommand{\elbo}[1]{\text{elbo}(#1)}
+\newcommand{\eval}{\biggr\rvert}
+\newcommand{\normal}{\mathcal{N}}
+\newcommand{\vk}{\vect{k}}
+\newcommand{\class}{\mathcal{C}}
+\newcommand{\infor}{\mathcal{I}}
+\newcommand{\variance}{\text{Var}}
+\newcommand{\vfx}{\vect{f}(X)}
+\newcommand{\events}{\mathcal{F}}
+\newcommand{\vSigma}{\vect{\Sigma}}
+\newcommand{\fls}{f_{\text{LS}}}
+\newcommand{\Ebbeps}[1]{\Ebb_{\vepsilon}\left[#1\right]}
+\newcommand{\vKc}{\vect{\mathcal{K}}}
+\newcommand{\Var}[1]{\text{Var}\left[#1\right]}
+\newcommand{\lp}[3]{
+    \begin{equation*}
+    \begin{alignat}{2}
+    &\!\min       &\qquad& #1\\
+    &\text{s.t.} &      & #2\\
+    &                  &      & #3
+    \end{alignat}
+    \end{equation*}
+}
+\newcommand{\ip}[2]{\langle #1\, , \, #2 \rangle}
+\newcommand{\lpmax}[3]{
+    \begin{equation*}
+    \begin{alignat}{2}
+    &\!\max       &\qquad& #1\\
+    &\text{s.t.} &      & #2\\
+    &                  &      & #3
+    \end{alignat}
+    \end{equation*}
+}
+\newcommand{\iphi}[2]{\ip{\phi(\vx_{#1})}{\phi(\vx_{#2})}}
+\newcommand{\fourmatrix}[4]{
+\begin{pmatrix}
+#1 & \cdots & #2 \\
+\vdots & \ddots & \vdots \\
+#3 & \cdots & #4
+\end{pmatrix}
+}
+\newcommand{\Cov}[2]{\text{Cov}\left[#1, #2\right]}
+\newcommand{\wls}{\vw_{\text{LS}}}
+\newcommand{\fxwls}{f(\vx, \vw_{\text{LS}})}
+\newcommand{\vPhi}{\vect{\Phi}}
+\newcommand{\wlsr}{\vw_{\text{LS-R}}}
+\newcommand{\mcal}{\mathcal{M}}
+\newcommand{\yhat}{\widehat{y}}
+\newcommand{\alphahat}{\widehat{\alpha}}
+\newcommand{\expectation}[1]{\Ebb\left[#1\right]}
+\newcommand{\Nbb}{\mathbb{N}}
+\newcommand{\indicator}[1]{\mathbbm{1}_{\left\{#1\right\}}}
+\newcommand{\ustop}{U^{\text{stopped}}}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# $\{0, 1\}$ Logistic Regression using Probability
+### Bernoulli Setting
+Assume $Y_i$ follows Bernoulli distribution given the $i^{th}$ observation and the parameters.
+$$
+Y_i \mid \vx_i \sim \text{Bernoulli}(p_i)
+$$
+We can write the probability mass function for $y_i$ as follows
+$$
+\Pbb(Y_i=y_i\mid \vx_i, p_i) = p_i^{y_i}(1 - p_i)^{1- y_i} 
+$$
+We assume that the log-odds is a linear combination of the input
+$$
+\ln\left(\frac{p_i}{1 - p_i}\right)= \vx_i^\top \vbeta \qquad \text{i.e.} \qquad p_i = \frac{1}{1 + \exp(-\vx_i^\top \vbeta)} = \frac{\exp(\vx_i^\top \vbeta)}{1 + \exp(\vx_i^\top \vbeta)} = \sigma(\vx_i^\top\vbeta)
+$$
+
+### Joint Log-Likelihood
+The joint likelihood is then found assuming IID-ness
+$$
+\begin{align}
+  p(\vy \mid \vbeta) &= \prod_{i=1}^n \Pbb(Y_i=y_i\mid \vx_i, p_i) \\
+  &= \prod_{i=1}^n  p_i^{y_i}(1 - p_i)^{1- y_i}
+\end{align}
+$$
+The log-likelihood is then
+$$
+\begin{align}
+\ln p(\vy\mid \vbeta) &= \ln\left(\prod_{i=1}^n p_i^{y_i}(1 - p_i)^{1- y_i}\right) \\
+&= \sum_{i=1}^n y_i \ln(p_i) + (1 - y_i)\ln(1 - p_i)
+\end{align}
+$$
+Alternatively, the likelihood can be written as follows
+$$
+\begin{align}
+p(\vy \mid \vbeta) &= \prod_{i=1}^n  p_i^{y_i}(1 - p_i)^{1- y_i} \\
+&= \prod_{i=1}^n \left(\frac{\exp(\vx_i^\top \vbeta)}{1 + \exp(\vx_i^\top \vbeta)}\right)^{y_i} \left(1 - \frac{\exp(\vx_i^\top \vbeta)}{1 + \exp(\vx_i^\top \vbeta)}\right)^{1 - y_i} \\
+&= \prod_{i=1}^n \left(\frac{\exp(\vx_i^\top \vbeta)}{1 + \exp(\vx_i^\top \vbeta)}\right)^{y_i} \left(\frac{1}{1 + \exp(\vx_i^\top \vbeta)}\right)^{1 - y_i} \\
+&= \prod_{i=1}^n \left(\frac{\exp(\vx_i^\top \vbeta)}{1 + \exp(\vx_i^\top \vbeta)}\right)^{y_i} \left(\frac{1}{1 + \exp(\vx_i^\top \vbeta)}\right)\left(1 + \exp(\vx_i^\top\vbeta)\right)^{y_i} \\
+&= \prod_{i=1}^n \exp(\vx_i^\top \vbeta y_i)\frac{1}{\left(1 + \exp(\vx_i^\top \vbeta)\right)^{y_i}} \left(\frac{1}{1 + \exp(\vx_i^\top \vbeta)}\right)\left(1 + \exp(\vx_i^\top\vbeta)\right)^{y_i} \\
+&= \prod_{i=1}^n \frac{\exp(\vx_i^\top \vbeta y_i)}{1 + \exp(\vx_i^\top \vbeta)}
+\end{align}
+$$
+
+Taking the logarithm of this expression gives
+$$
+\begin{align}
+\ln(p(\vy\mid\vbeta)) &= \sum_{i=1}^n \ln\left(\frac{\exp(\vx_i^\top \vbeta y_i)}{1 + \exp(\vx_i^\top \vbeta)}\right) \\
+&= \sum_{i=1}^n \ln(\exp(\vx_i^\top \vbeta y_i)) - \ln(1 + \exp(\vx_i^\top \vbeta)) \\
+&= \sum_{i=1}^n \vx_i^\top \vbeta y_i  - \ln(1 + \exp(\vx_i^\top \vbeta))
+\end{align}
+$$
+
+### Maximum Likelihood $\equiv$ Minimize Loss Function
+Our aim is to maximize the likelihood. This is equivalent to maximizing the log likelihood, which is equivalent to minimizing the negative log likelihood.
+$$
+\min_{\vbeta} -\sum_{i=1}^n y_i \ln(p_i) + (1 - y_i)\ln(1 - p_i)
+$$
+Let's consider the expression inside the summation
+$$
+y_i \ln(p_i) + (1 - y_i)\ln(1 - p_i)
+$$
+We can notice that
+$$
+y_i \ln(p_i) + (1 - y_i)\ln(1 - p_i) = 
+\begin{cases}
+\ln(1 - p_i) && \text{if } y_i=0\\
+\ln(p_i) && \text{if } y_i = 1
+\end{cases}
+$$
+Remember that $p_i = \sigma(\vx_i^\top \vbeta)$ and that $1 - \sigma(\vx_i^\top \vbeta) = \sigma(-\vx_i^\top\vbeta)$
+$$
+y_i \ln(\sigma(\vx_i^\top \vbeta)) + (1 - y_i)\ln(\sigma(-\vx_i^\top\vbeta)) = 
+\begin{cases}
+\ln(\sigma(-\vx_i^\top\vbeta)) && \text{if } y_i=0\\
+\ln(\sigma(\vx_i^\top \vbeta)) && \text{if } y_i = 1
+\end{cases}
+$$
+We are thus looking for something that is $-1$ when $y_i=0$ and that it is $1$ when $y_i=1$. In particular, notice that $2 y_i - 1$ does the job. Thus we can write our problem as 
+$$
+\begin{align}
+\min_{\vbeta} -\sum_{i=1}^n \ln\left(\sigma((2y_i - 1)\vx_i^\top \vbeta)\right) &= \min_{\vbeta}\sum_{i=1}^n - \ln\left(\frac{1}{1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)}\right) \\
+&= \min_{\vbeta}\sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) \\
+&= \min_{\vbeta} \sum_{i=1}^n L(\vx_i^\top, y_i ; \vbeta)
+\end{align}
+$$
+where the loss incurred using parameter $\vbeta$ when predicting the label for $\vx_i^\top$ whose true label is $y_i$ is
+$$
+L(\vx_i^\top, y_i; \vbeta) = 
+\begin{cases}
+\ln\left(1 + \exp(\vx_i^\top \vbeta)\right) && \text{if } y_i= 0\\
+\ln\left(1 + \exp(-\vx_i^\top \vbeta\right) && \text{if } y_i = 1
+\end{cases}
+$$
+
+### Maximum-A-Posteriori (MAP)
+Recall from Bayes Rule
+$$
+p(\vbeta\mid \vy) = \frac{p(\vy \mid \vbeta)p(\vbeta)}{p(\vy)} \propto p(\vy\mid \vbeta) p(\vbeta)
+$$
+Taking the logarithm both sides and multiplying by $-1$ we obtain
+$$
+-\ln(p(\vbeta\mid \vy)) \propto -\ln(p(\vy\mid \vbeta)) - \ln(p(\vbeta))
+$$
+We can choose to use a Gaussian Prior on the parameters $p(\vbeta) = N(\vmu_0, \vSigma_0)$. If $\vbeta\in\Rbb^{p\times 1}$ then
+$$
+\ln(p(\vbeta)) = -\frac{p}{2}\ln(2\pi) - \frac{1}{2}\ln(|\Sigma_0|)-\frac{1}{2}(\vbeta - \vmu_0)^\top \vSigma_0^{-1}(\vbeta - \vmu_0)
+$$
+Plugging this in, we obtain the following. Notice how we neglect terms that do not depend on $\vbeta$ because they will not matter when we minimize this with respect to $\vbeta$.
+$$
+\begin{align}
+\min_{\vbeta} -\ln(p(\vbeta\mid \vy)) &= \min_{\vbeta} -\ln(p(\vy\mid \vbeta)) - \ln(p(\vbeta)) \\
+&= \min_{\vbeta} -\ln(p(\vy\mid \vbeta))  + \frac{p}{2}\ln(2\pi)  + \frac{1}{2}\ln(|\Sigma_0|) +\frac{1}{2}(\vbeta - \vmu_0)^\top \vSigma_0^{-1}(\vbeta - \vmu_0) \\
+&= \min_{\vbeta} -\ln(p(\vy\mid \vbeta)) + \frac{1}{2}(\vbeta - \vmu_0)^\top \vSigma_0^{-1}(\vbeta - \vmu_0) \\
+&= \min_{\vbeta} \sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{1}{2}(\vbeta - \vmu_0)^\top \vSigma_0^{-1}(\vbeta - \vmu_0)
+\end{align}
+$$
+
+### Ridge Regularization $\equiv$ Isotripic Gaussian Prior
+Now if we set $\vmu_0 = \vzero_{p}$ and $\vSigma_0 = \sigma^2_{\vbeta} I_p$ (this is equivalent to setting a univariate normal prior on each coefficient, with $p(\beta_j) = N(0, \sigma_{\vbeta}^2)$) we have
+$$
+\min_{\vbeta} \sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{1}{2}\vbeta^\top (\sigma^2_{\vbeta} I_p)^{-1}\vbeta
+$$
+using the fact that for an invertible matrix $A$ and a non-zero constant $c\in\Rbb\backslash\{0\}$ we have $(cA)^{-1} = \frac{1}{c}A^{-1}$ we obtain
+$$
+\min_{\vbeta} \sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{1}{2 \sigma^2_{\vbeta}}\vbeta^\top\vbeta
+$$
+Setting $\lambda:=\frac{1}{\sigma^2_{\vbeta}}$ we have regularized logistic regression
+$$
+\min_{\vbeta} \sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{\lambda}{2}\vbeta^\top\vbeta
+$$
+It is more stable to multiply out by $\sigma^2_{\vbeta}$ so we get
+$$
+\min_{\vbeta} \sigma^2_{\vbeta}\sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{1}{2}\vbeta^\top\vbeta
+$$
+
+### Ridge Regularization except on Intercept
+Where 
+$$
+\vbeta = 
+\begin{pmatrix}
+  \beta_0\\
+  \beta_1 \\
+  \vdots \\
+  \beta_{p-1}
+\end{pmatrix} := 
+\begin{pmatrix}
+  \beta_0 \\
+  \vbeta_{1:p-1}
+\end{pmatrix}
+$$
+We've defined $\vbeta_{1:p-1}:=(\beta_1, \ldots, \beta_p)^\top$ because often we don't really regularize the intercept. This means that we place a Multivariate Gaussian prior on $\vbeta_{1:p-1}$ as follows $p(\vbeta_{1:p-1}) = N(\vzero_{p-1}, \sigma_{\vbeta_{1:p-1}}^2 I_{p-1})$ (again, this is equivalent to putting a univariate normal prior on each of $\beta_1, \ldots, \beta_{p-1}$ with $p(\beta_j) = N(0, \sigma^2_{\vbeta_{1:p-1}})$). Instead, on $\beta_0$ we could place a uniform prior, which means it's value would not depend on $\beta_0$ and so could be dropped from the expression. 
+$$
+\min_{\vbeta} \sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{1}{2 \sigma_{\vbeta_{1:p-1}}^2}\vbeta_{1:p-1}^\top\vbeta_{1:p-1}
+$$
+It is more stable to multiply out by $\sigma^2_{\vbeta_{1:p-1}}$ therefore
+$$
+\min_{\vbeta} \sigma_{\vbeta_{1:p-1}}^2\sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{1}{2}\vbeta_{1:p-1}^\top\vbeta_{1:p-1}
+$$
+Notice that this is consistent with the implementation used by `scikit-learn` provided [here](https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression).
+
+### Full-Bayesian (Laplace Approximation)
+Full-Bayesian in intractable. Laplace Approximation approximates $p(\vbeta\mid \vy)$ with a Gaussian distribution $q(\vbeta)$. To find such a distribution, we use the multivariate version of Taylor's expansion to expand the log posterior around its mode $\vbeta_{\text{MAP}}$. We take a second order approximation
+$$
+\ln p(\vbeta \mid \vy) \simeq \ln p(\vbeta_{\text{MAP}}\mid \vy) + \nabla\ln p(\vbeta_{\text{MAP}}\mid \vy)(\vbeta - \vbeta_{\text{MAP}}) + \frac{1}{2}(\vbeta - \vbeta_{\text{MAP}})^\top \nabla^2 \ln p(\vbeta_{\text{MAP}}\mid \vy) (\vbeta - \vbeta_{\text{MAP}})
+$$
+Since $\vbeta_{\text{MAP}}$ is a stationary point, the gradient at this point will be zero so we have
+$$
+\ln p(\vbeta \mid \vy) \simeq \ln p(\vbeta_{\text{MAP}}\mid \vy) + \frac{1}{2}(\vbeta - \vbeta_{\text{MAP}})^\top \nabla^2 \ln p(\vbeta_{\text{MAP}}\mid \vy) (\vbeta - \vbeta_{\text{MAP}})
+$$
+We take the exponential both sides to obtain
+$$
+p(\vbeta \mid \vy) \simeq p(\vbeta_{\text{MAP}}\mid \vy) \exp\left(\frac{1}{2}(\vbeta - \vbeta_{\text{MAP}})^\top \nabla^2 \ln p(\vbeta_{\text{MAP}}\mid \vy) (\vbeta - \vbeta_{\text{MAP}})\right)
+$$
+We regnize this has the shape of a Multivariate Normal distribution. We therefore define our Laplace approximation to be
+$$
+q(\vbeta)  = (2\pi)^{-\frac{p}{2}}\text{det}\left(-\nabla^2\ln p(\vbeta_{\text{MAP}}\mid \vy)\right) \exp\left(\frac{1}{2}(\vbeta - \vbeta_{\text{MAP}})^\top \nabla^2 \ln p(\vbeta_{\text{MAP}}\mid \vy) (\vbeta - \vbeta_{\text{MAP}})\right)
+$$
+That is
+$$
+q(\vbeta) = N\left(\vbeta_{\text{MAP}}, \left[-\nabla^2 \ln p(\vbeta_{\text{MAP}}\mid \vy)\right]^{-1}\right)
+$$
+To find $\nabla_{\vbeta}^2 \ln p(\vbeta \mid \vy)\eval_{\vbeta=\vbeta_{\text{MAP}}}$ we write
+$$
+\nabla_{\vbeta}^2 \ln p(\vbeta \mid \vy) = \nabla_{\vbeta}^2 \ln p(\vy \mid \vbeta) + \nabla_{\vbeta}^2 \ln p(\vbeta)
+$$
+and we find each of the expressions on the right-hand side separately. We start with $\nabla_{\vbeta}^2 \ln p(\vbeta)$. Recall that if we have a quadratic form $\vx^\top A \vx$ the derivative of this quadratic form with respect to $\vx$ is given by $\vx^\top (A + A^\top)$. Applying this to our case, and using the fact that $\vSigma_0^{-1}$ is **symmetric** we have
+$$
+\nabla_{\vbeta} \ln p(\vbeta) = -\frac{1}{2} (\vbeta - \vmu_0)^\top 2\vSigma_0^{-1} = -(\vbeta - \vmu_0)^\top \vSigma_0^{-1} = -\vbeta^\top \vSigma_0^{-1} + \vmu_0^\top \vSigma_0^{-1}
+$$
+Taking the derivative with respect to $\vbeta$ again we get
+$$
+-\nabla^2_{\vbeta} \ln p(\vbeta) = \vSigma_0^{-1}
+$$
+To find $\nabla_{\vbeta} \ln p(\vy \mid \vbeta)$ we take the derivative componentwise
+$$
+\begin{align}
+\frac{\partial}{\partial \beta_j} \ln p(\vy \mid \vbeta) &= \sum_{i=1}^n y_i \partial_{\beta_j}\ln \sigma(\vx_i^\top \vbeta) + (1 - y_i)\partial_{\beta_j} \ln \sigma(-\vx_i^\top \vbeta) \\
+&= \sum_{i=1}^n y_i \frac{\sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta))}{\sigma(\vx_i^\top \vbeta)} x_i^{(j)} + (1 - y_i) \frac{\sigma(-\vx_i^\top \vbeta)(1 - \sigma(-\vx_i^\top \vbeta))}{\sigma(-\vx_i^\top \vbeta)}(-x_i^{(j)}) \\
+&= \sum_{i=1}^n y_ix_i^{(j)}\sigma(-\vx_i^\top \vbeta) + (y_i x_i^{(j)} - x_i^{(j)})\sigma(\vx_i^\top \vbeta)
+\end{align}
+$$
+Now take the derivative with respect to $\beta_k$
+$$
+\begin{align}
+\partial_{\beta_k}\partial_{\beta_j} \ln p(\vy \mid \vbeta) &= \sum_{i=1}^n y_ix_i^{(j)}\partial_{\beta_k}\sigma(-\vx_i^\top \vbeta) + (y_i x_i^{(j)} - x_i^{(j)})\partial_{\beta_k}\sigma(\vx_i^\top \vbeta) \\
+&= \sum_{i=1}^n y_ix_i^{(j)}\sigma(-\vx_i^\top \vbeta)(1 - \sigma(-\vx_i^\top \vbeta))(-x_i^{(k)}) + (y_i x_i^{(j)} - x_i^{(j)})\sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta)) x_i^{(k)} \\
+&= \sum_{i=1}^n -y_ix_i^{(j)}x_i^{(k)} \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta)) + (y_i x_i^{(j)} x_i^{(k)} - x_i^{(j)} x_i^{(k)})\sigma(\vx_i^\top \vbeta) (1 - \sigma(\vx_i^\top \vbeta))\\
+&= -\sum_{i=1}^n x_i^{(j)} x_i^{(k)} \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta))
+\end{align}
+$$
+This tells us that
+$$
+[\nabla^2_{\vbeta} \ln p(\vy \mid \vbeta)]_{kj} = -\sum_{i=1}^n x_i^{(j)} x_i^{(k)} \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta))
+$$
+Note that for a vector $\vx_i :=(1, x_{i}^{(1)}, \ldots, x_{i}^{(p-1)})^\top$ the **outer product** gives the following **symmetric** matrix
+$$
+\vx_i \vx_i^\top =
+\begin{pmatrix}
+1 \\
+x_{i}^{(1)} \\
+\vdots \\
+x_{i}^{(p-1)}
+\end{pmatrix}
+\begin{pmatrix}
+1 & x_{i}^{(1)} & \cdots & x_{i}^{(p-1)}
+\end{pmatrix} = 
+\begin{pmatrix}
+1 & x_{i}^{(1)}  & \cdots & x_{i}^{(p-1)} \\
+x_{i}^{(1)} & (x_{i}^{(1)})^2 & \cdots & x_{i}^{(1)} x_{i}^{(p-1)}\\
+\vdots & \vdots & \ddots & \vdots\\
+x_{i}^{(p-1)} & x_{i}^{(p-1)}x_i^{(1)} & \cdots & (x_{i}^{(p-1)})^2
+\end{pmatrix}
+$$
+In particular $[\vx_i \vx_i^\top]_{kj} = x_i^{(j)}x_i^{(k)}$ so that
+$$
+- \nabla_{\vbeta}^2 \ln p(\vy \mid \vbeta) = \sum_{i=1}^n \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta)) \vx_i\vx_i^\top
+$$
+Putting everything together we get
+$$
+-\nabla_{\vbeta}^2 \ln p(\vbeta \mid \vy) = \vSigma_0^{-1} + \sum_{i=1}^n \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta)) \vx_i\vx_i^\top
+$$
+
+### Gradient Ascent Optimization
+The simplest way to find $\vbeta$ that maximizes the likelihood is to do **gradient ascent**. Remember that when working on the Laplace approximation we found the derivative of the log-likelihood with respect to the $j^{th}$ component of $\vbeta$. We can rearrange such an expression to get a nicer form.
+$$
+\begin{align}
+\frac{\partial}{\partial \beta_j} \ln p(\vy \mid \vbeta) &= \sum_{i=1}^n y_ix_i^{(j)}\sigma(-\vx_i^\top \vbeta) + (y_i x_i^{(j)} - x_i^{(j)})\sigma(\vx_i^\top \vbeta) \\
+&= \sum_{i=1}^n y_ix_i^{(j)}(1 - \sigma(\vx_i^\top \vbeta)) + (y_i x_i^{(j)} - x_i^{(j)})\sigma(\vx_i^\top \vbeta) \\
+&= \sum_{i=1}^n y_ix_i^{(j)} - y_ix_i^{(j)}\sigma(\vx_i^\top \vbeta) + y_i x_i^{(j)}\sigma(\vx_i^\top \vbeta) - x_i^{(j)}\sigma(\vx_i^\top \vbeta) \\
+&= \sum_{i=1}^n \left[y_i - \sigma(\vx_i^\top \vbeta)\right]x_i^{(j)}
+\end{align}
+$$
+Therefore the full gradient is given by
+$$
+\begin{align}
+\nabla_{\vbeta} \ln p(\vy\mid\vbeta) &= \left(\frac{\partial}{\partial \beta_0} \ln p(\vy\mid \vbeta), \ldots, \frac{\partial}{\partial \beta_{p-1}} \ln p(\vy\mid \vbeta)\right)^\top \\
+&= \left(\sum_{i=1}^n(y_i - \sigma(\vx_i^\top \vbeta))x_i^{(0)}, \ldots, \sum_{i=1}^n(y_i - \sigma(\vx_i^\top \vbeta))x_i^{(p-1)}\right)^\top \\
+&= \sum_{i=1}^n(y_i - \sigma(\vx_i^\top \vbeta))\left(x_i^{(0)}, \ldots, x_i^{(p-1)}\right) \\
+&=  \sum_{i=1}^n(y_i - \sigma(\vx_i^\top \vbeta)) \vx_i
+\end{align}
+$$
+Gradient ascent then becomes
+$$
+\vbeta_{k+1} \leftarrow \vbeta_{k} + \gamma \nabla_{\vbeta}\ln p(\vy\mid\vbeta) = \vbeta_k + \gamma \sum_{i=1}^n(y_i - \sigma(\vx_i^\top \vbeta)) \vx_i
+$$
+This can be **vectorized** when programming as follows
+$$
+\vbeta_{k+1} \leftarrow \vbeta_k + \gamma X^\top(\vy - \sigma(X\vbeta))
+$$
+where $X\in\Rbb^{n\times p}$ is the design matrix.
+$$
+X = 
+\begin{pmatrix}
+\vx_1^\top \\
+\vdots \\
+\vx_n^\top
+\end{pmatrix}
+$$
+
+One can change the **step size** at every iteration. One possible choice for $\gamma_k$ is as follows
+$$
+\gamma_k = \frac{|(\vbeta_k - \vbeta_{k-1})^\top [\nabla \ln p(\vy \mid \vbeta_k) - \nabla\ln p(\vy\mid \vbeta_{k-1})]|}{\parallel\nabla\ln p(\vy\mid \vbeta_k) - \nabla \ln p(\vy\mid \vbeta_{k-1}\parallel^2}
+$$
+
+### Newton's Method
+Again, during the Laplace approximation section we found that the Hessian is given by 
+$$
+\nabla_{\vbeta}^2 \ln p(\vy \mid \vbeta) = -\sum_{i=1}^n \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta)) \vx_i\vx_i^\top
+$$
+This expression can be vectorized as follows
+$$
+\nabla_{\vbeta}^2 \ln p(\vy \mid \vbeta) = - X^\top D X
+$$
+where
+$$
+D = \text{diag}(\sigma(X\vbeta)(1 - \sigma(X\vbeta))) = 
+\begin{pmatrix}
+\sigma(\vx_1^\top\vbeta)(1 - \sigma(\vx_1^\top\vbeta)) & 0 & \ldots & 0 \\
+0 & \sigma(\vx_2^\top\vbeta)(1 - \sigma(\vx_2^\top\vbeta)) & \ldots & 0 \\
+\vdots & \ldots & \ddots & \vdots \\
+0 & 0 & \ldots &\sigma(\vx_n^\top\vbeta)(1 - \sigma(\vx_n^\top\vbeta)) 
+\end{pmatrix}
+$$
+Newton's method then updates the weights as follows
+$$
+\vbeta_{k+1} \leftarrow \vbeta_k + X^{-1} D_k^{-1}(\vy - \sigma(X\vbeta_k))
+$$
+
+Of course in practice we never invert the matrix but rather compute the direction $\vect{d}$ by solving the linear system
+$$
+X\vect{d}_k = D_k^{-1}(\vy - \sigma(X\vbeta_k))
+$$
+and then we find the next iterate as
+$$
+\vbeta_{k+1}\leftarrow \vbeta_k + \vect{d}_k
+$$
+
+# Logistic Regression $\{-1, 1\}$
+Notice that in the previous chapter we used $y_i\in \{0, 1\}$ with 
+$$
+\Pbb(Y_i=y_i \mid \vx_i) = \sigma(\vx_i^\top \vbeta)^{y_i}\sigma(-\vx_i^\top \vbeta)^{1-y_i} = 
+\begin{cases}
+\sigma(-\vx_i^\top \vbeta) && \text{if } y_i  =0\\
+\sigma(\vx_i^\top \vbeta) && \text{if } y_i = 1
+\end{cases}
+$$
+In particular 
+$$
+p(y_i = 1) = \sigma(\vx_i^\top \vbeta)
+$$
+This gave us the loss function
+$$
+\sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right)
+$$
+Now the key point is to notice that
+$$
+1 - 2 y_i =
+\begin{cases}
+1 && \text{if } y_i = 0\\
+-1 && \text{if } y_i = 1
+\end{cases}
+$$
+So that actually the mapping that makes $\{0, 1\}$-Logistic Regression and $\{-1, 1\}$-Logistic Regression equivalent is $0 \mapsto 1$ and $1 \mapsto -1$.
+
+Now instead we have
+$$
+p(z_i = -1) = \sigma(\vx_i^\top \vbeta)
+$$
+
+# Logistic Regression $\{-1, 1\}$ with Song's notation
+Song defined $\sigma_{\text{SONG}}(\vx_i^\top \vbeta)$ to be
+$$
+\sigma_{\text{SONG}}(\vx_i^\top \vbeta) = \frac{1}{1 + \exp(\vx_i^\top \vbeta)}
+$$
+rather than
+$$
+\sigma(\vx_i^\top \vbeta) = \frac{1}{1 + \exp(-\vx_i^\top \vbeta)}
+$$
+This decision is just so that we can write
+$$
+p(z_i = -1) = \sigma_{\text{SONG}}(-\vx_i^\top \vbeta)
+$$
+
+and
+$$
+p(z_i = 1) = \sigma_{\text{SONG}}(\vx_i^\top \vbeta)
+$$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
