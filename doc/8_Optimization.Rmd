@@ -2,6 +2,141 @@
 title: "Optimization for Classification"
 output: html_document
 ---
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{listings}
+\usepackage{color}
+\usepackage[T1]{fontenc}
+\usepackage{fullpage}
+\usepackage{hyperref}
+\usepackage{amssymb}
+\usepackage{fullpage}
+\usepackage{color}
+\usepackage{algorithm2e}
+\usepackage{bbm}
+\DeclareRobustCommand{\rchi}{{\mathpalette\irchi\relax}}
+\newcommand{\irchi}[2]{\raisebox{\depth}{$#1\chi$}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newenvironment{rcases}
+  {\left.\begin{aligned}}
+  {\end{aligned}\right\rbrace}
+\newcommand{\def}{\overset{\text{def}}{:=}}
+\newcommand{\lop}{\mathcal{L}}
+\newcommand{\vect}[1]{\boldsymbol{\mathbf{#1}}}
+\newcommand{\norm}[1]{||#1||}
+\newcommand{\vx}{\vect{x}}
+\newcommand{\vb}{\vect{b}}
+\newcommand{\vy}{\vect{y}}
+\newcommand{\vz}{\vect{z}}
+\newcommand{\ve}{\vect{e}}
+\newcommand{\vc}{\vect{c}}
+\newcommand{\vr}{\vect{r}}
+\newcommand{\vphi}{\vect{\phi}}
+\newcommand{\vf}{\vect{f}}
+\newcommand{\vY}{\vect{Y}}
+\newcommand{\vX}{\vect{X}}
+\newcommand{\vw}{\vect{w}}
+\newcommand{\thetahatis}{\widehat{\theta}^{(s)}_i}
+\newcommand{\thetahat}[1]{\widehat{\theta}^{(#1)}_i}
+\newcommand{\vm}{\vect{m}}
+\newcommand{\redmath}[1]{\mathbin{\textcolor{red}{\vect{#1}}}}
+\newcommand{\redtext}[1]{\textcolor{red}{\vect{#1}}}
+\newcommand{\vzero}{\vect{0}}
+\newcommand{\vt}{\vect{t}}
+\newcommand{\linearpredictor}{\vx_i^T\vbeta}
+\newcommand{\vmu}{\vect{\mu}}
+\newcommand{\vnu}{\vect{\nu}}
+\newcommand{\veta}{\vect{\eta}}
+\newcommand{\vbeta}{\vect{\beta}}
+\newcommand{\vepsilon}{\vect{\epsilon}}
+\newcommand{\Pbb}{\mathbb{P}}
+\newcommand{\Ebb}{\mathbb{E}}
+\newcommand{\vdelta}{\vect{\delta}}
+\newcommand{\Rbb}{\mathbb{R}}
+\newcommand{\vxi}{\vect{\xi}}
+\newcommand{\sigmalg}{\sigma\text{-algebra}}
+\newcommand{\vu}{\vect{u}}
+\newcommand{\vW}{\vect{W}}
+\newcommand{\vlambda}{\vect{\lambda}}
+\newcommand{\dataset}{\mathcal{D}}
+\newcommand{\vS}{\vect{S}}
+\newcommand{\sample}{\vz^{(l)}}
+\newcommand{\MYhref}[3][blue]{\href{#2}{\color{#1}{#3}}}
+\newcommand{\sol}[1]{\vx^{(#1)}}
+\newcommand{\qtext}[1]{\quad\quad \text{#1}}
+\newcommand{\vtheta}{\vect{\theta}}
+\newcommand{\bi}[1]{\textbf{\textit{#1}}}
+\newcommand{\iid}{\overset{\text{i.i.d.}}{\sim}}
+\newcommand{\uniform}{\mathcal{U}(0, 1)}
+\newcommand{\qimplies}{\quad\Longrightarrow\quad}
+\newcommand{\tp}{\tilde{p}}
+\newcommand{\nul}{\Theta^{(0)}}
+\newcommand{\alter}{\Theta^{(1)}}
+\newcommand{\const}{\mathcal{Z}}
+\newcommand{\tq}{\tilde{q}}
+\newcommand{\tvx}{\widetilde{\vx}}
+\newcommand{\vK}{\vect{K}}
+\newcommand{\tr}{\tilde{r}}
+\newcommand{\like}{\mathcal{L}}
+\newcommand{\kl}[2]{\text{KL}(#1\,\,||\,\,#2)}
+\newcommand{\logit}[1]{\log\left(\frac{#1}{1-#1}\right)}
+\newcommand{\elbo}[1]{\text{elbo}(#1)}
+\newcommand{\eval}{\biggr\rvert}
+\newcommand{\normal}{\mathcal{N}}
+\newcommand{\vk}{\vect{k}}
+\newcommand{\class}{\mathcal{C}}
+\newcommand{\infor}{\mathcal{I}}
+\newcommand{\variance}{\text{Var}}
+\newcommand{\vfx}{\vect{f}(X)}
+\newcommand{\events}{\mathcal{F}}
+\newcommand{\vSigma}{\vect{\Sigma}}
+\newcommand{\fls}{f_{\text{LS}}}
+\newcommand{\Ebbeps}[1]{\Ebb_{\vepsilon}\left[#1\right]}
+\newcommand{\vKc}{\vect{\mathcal{K}}}
+\newcommand{\Var}[1]{\text{Var}\left[#1\right]}
+\newcommand{\lp}[3]{
+    \begin{equation*}
+    \begin{alignat}{2}
+    &\!\min       &\qquad& #1\\
+    &\text{s.t.} &      & #2\\
+    &                  &      & #3
+    \end{alignat}
+    \end{equation*}
+}
+\newcommand{\ip}[2]{\langle #1\, , \, #2 \rangle}
+\newcommand{\lpmax}[3]{
+    \begin{equation*}
+    \begin{alignat}{2}
+    &\!\max       &\qquad& #1\\
+    &\text{s.t.} &      & #2\\
+    &                  &      & #3
+    \end{alignat}
+    \end{equation*}
+}
+\newcommand{\iphi}[2]{\ip{\phi(\vx_{#1})}{\phi(\vx_{#2})}}
+\newcommand{\fourmatrix}[4]{
+\begin{pmatrix}
+#1 & \cdots & #2 \\
+\vdots & \ddots & \vdots \\
+#3 & \cdots & #4
+\end{pmatrix}
+}
+\newcommand{\Cov}[2]{\text{Cov}\left[#1, #2\right]}
+\newcommand{\wls}{\vw_{\text{LS}}}
+\newcommand{\fxwls}{f(\vx, \vw_{\text{LS}})}
+\newcommand{\vPhi}{\vect{\Phi}}
+\newcommand{\wlsr}{\vw_{\text{LS-R}}}
+\newcommand{\mcal}{\mathcal{M}}
+\newcommand{\yhat}{\widehat{y}}
+\newcommand{\alphahat}{\widehat{\alpha}}
+\newcommand{\expectation}[1]{\Ebb\left[#1\right]}
+\newcommand{\Nbb}{\mathbb{N}}
+\newcommand{\indicator}[1]{\mathbbm{1}_{\left\{#1\right\}}}
+\newcommand{\ustop}{U^{\text{stopped}}}
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -59,6 +194,10 @@ gaussian_density <- function(x, mu, sigma, log=FALSE){
   }
   return(value[[1]])
 }
+# Fastest known pure-R way to compute means across dimensions. See my helper Rmd with benchmarks
+center_matrix <- function(A){
+  return(A - rep(1, nrow(A)) %*% t(colMeans(A)))
+}
 ```
 
 # Binary Dataset Generation
@@ -71,21 +210,24 @@ m1 <- c(6, 6)
 m2 <- c(-1, 1)
 s1 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
 s2 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
-# Set a seed if you want
-set.seed(123)
 ```
 ### Data Generating Function
 ```{r}
-generate_binary_data <- function(n1, n2, m1, s1, m2, s2, label1=1, label2=-1){
-  # x1, x2 and y for both classes
+generate_binary_data <- function(n1, n2, m1, s1, m2, s2){
+  # x1, x2 and y for both classes (both 0,1 and -1,1 will be created for convenience)
   class1 <- mvrnorm(n1, m1, s1)
   class2 <- mvrnorm(n2, m2, s2)
-  y      <- c(rep(label1, n1), rep(label2, n2))
+  y      <- c(rep(0, n1), rep(1, n2))   # {0 , 1}
+  y2     <- c(rep(-1, n1), rep(1, n2))  # {-1, 1}
   # Generate dataframe
-  data <- data.frame(rbind(class1, class2), y)
+  data <- data.frame(rbind(class1, class2), y, y2)
   return(data)
 }
+# Generate reproducible data
+set.seed(123)
 data <- generate_binary_data(n1, n2, m1, s1, m2, s2)
+X <- data %>% select(-y, -y2) %>% as.matrix
+y <- data %>% select(y) %>% as.matrix
 ```
 ### Data Appearance
 ```{r}
@@ -100,17 +242,6 @@ plot_dataset(data)
 ```
 
 # Fisher Discriminant Analysis
-### Data Generation
-First, get the design matrix `X` and the response vector `y`.
-```{r}
-set.seed(123)
-# We want it to be 0, 1
-fda_data <- generate_binary_data(n1, n2, m1, s1, m2, s2, label1=0, label2=1)
-X_fda <- fda_data %>% select(-y) %>% as.matrix
-y_fda <- fda_data %>% select(y) %>% as.matrix
-plot_dataset(fda_data)
-```
-
 ### FDA Class
 Define an S3 object performing FDA.
 
@@ -156,11 +287,11 @@ plot.FDA <- function(x, y=NULL, ...){
     # Plot on a simple horizontal line
   df <- data.frame(x1=dot_products, x2=rep(0, nrow(dot_products)), y=x$y)
   p <- ggplot(data=df) + 
-        geom_point(aes(x=x1, y=x2, color=as_factor(y)))
+        geom_point(aes(x=x1, y=x2, color=as_factor(x$y)))
   } else {
     # Find embedded points in 2D
     x_emb <- dot_products %*% t(sol_unit)
-    dfembed <- data.frame(x1=x_emb[, 1], x2=x_emb[, 2], y=y_fda)
+    dfembed <- data.frame(x1=x_emb[, 1], x2=x_emb[, 2], y=x$y)
     # Find data mean, and mean per cluster
     datamean <- apply(x$X, 2, mean)
     datamean <- data.frame(x=datamean[1], y=datamean[2])
@@ -183,10 +314,9 @@ plot.FDA <- function(x, y=NULL, ...){
 }
 ```
 
-We can see this in action as follows
-
+### Results
 ```{r}
-fda_object <- fda(X_fda, y_fda)
+fda_object <- fda(X, y)
 plot(fda_object)
 ```
 
@@ -255,99 +385,187 @@ plot.naive_bayes <- function(x, y=NULL, ngrid=75, ...){
 }
 ```
 
-Let's see this in action.
-
+### Results
 ```{r}
-nb <- naive_bayes(X_fda, y_fda)
-plot(nb)
+plot(naive_bayes(X, y))
 ```
 
 
 # Logistic Regression
 ### Mathematical Setting
-USE SONG NOTATION. $y_i\in\{+1, -1\}$. Cost function is
+Let $Y_i\mid \vx_i \sim \text{Bernoulli}(p_i)$ with $p_i = \sigma(\vx_i^\top \vbeta)$ where $\sigma(\cdot)$ is the **sigmoid function**. The joint log-likelihood is given by
+$$
+\ln p(\vy\mid \vbeta) = \sum_{i=1}^n y_i \ln(p_i) + (1 - y_i)\ln(1 - p_i)
+$$
+### Maximum Likelihood Estimation
+Maximizing the likelihood is equivalent to minimizing the negative log-likelihood. Minimizing the negative log likelihood is equivalent to solving the following optimization problem
 
 $$
--log(p(\mathcal{D}\mid \beta) = \sum_{i=1}^n \log\left(1 + \exp\left(-y_i({\bf{x}_i^\top \beta})\right)\right)
-$$
-Maximizing the likelihood is equivalent to minimizing the negative log-likelihood. Therefore we want
-$$
-\min_{\beta} \sum_{i=1}^n \log\left(1 + \exp\left(-y_i({\bf{x}_i^\top \beta})\right)\right)
-$$
-Regularized (MAP with Gaussian) is
-$$
-\min_{\beta} \frac{1}{2} \beta^\top\beta + \sum_{i=1}^n \log\left(1 + \exp\left(-y_i({\bf{x}_i^\top \beta})\right)\right)
+\min_{\vbeta}\sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right)
 $$
 
-### Implementation
+### Maximum-A-Posteriori and Ridge Regularization
+We can introduce an isotropic Gaussian prior on **all** the coefficients $p(\vbeta) = N(\vzero, \sigma_{\vbeta}^2 I)$. Maximizing the posterior $p(\vbeta \mid \vy)$ is equivalent to minimizing the negative log posterior $-\ln p(\vbeta\mid \vy)$ giving
+
+$$
+\min_{\vbeta} \sigma^2_{\vbeta}\sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{1}{2}\vbeta^\top\vbeta
+$$
+Often we don't want to regularize the intercept. For this reason we place an isotropic Gaussian prior on $\vbeta_{1:p-1}:=(\beta_1, \ldots, \beta_{p-1})$ and instead we place a uniform distribution on $\beta_0$, which doesn't depend on $\beta_0$. This leads to 
+$$
+\min_{\vbeta} \sigma_{\vbeta_{1:p-1}}^2\sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) + \frac{1}{2}\vbeta_{1:p-1}^\top\vbeta_{1:p-1}
+$$
+
+### Laplace Approximation
+A fully-Bayesian treatment is intractable. Instead we approximate the posterior with a multivariate Gaussian distribution centered at the mode
+$$
+q(\vbeta) = N\left(\vbeta_{\text{MAP}}, \left[-\nabla^2 \ln p(\vbeta_{\text{MAP}}\mid \vy)\right]^{-1}\right)
+$$
+where one can show that the variance-covariance matrix 
+$$
+-\nabla_{\vbeta}^2 \ln p(\vbeta \mid \vy) = \vSigma_0^{-1} + \sum_{i=1}^n \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta)) \vx_i\vx_i^\top = \vSigma_0^{-1} + X^\top D X
+$$
+where
+$$
+D = 
+\begin{pmatrix}
+\sigma(\vx_1^\top\vbeta)(1 - \sigma(\vx_1^\top\vbeta)) & 0 & \ldots & 0 \\
+0 & \sigma(\vx_2^\top\vbeta)(1 - \sigma(\vx_2^\top\vbeta)) & \ldots & 0 \\
+\vdots & \ldots & \ddots & \vdots \\
+0 & 0 & \ldots &\sigma(\vx_n^\top\vbeta)(1 - \sigma(\vx_n^\top\vbeta)) 
+\end{pmatrix}
+$$
+
+### Gradient Ascent
+Updates take the form
+$$
+\vbeta_{k+1} \leftarrow \vbeta_k + \gamma_k X^\top(\vy - \sigma(X\vbeta_k))
+$$
+where the step size $\gamma_k$ can either be chosen small and constant or can be chosen using line search, leading to 
+$$
+\gamma_k = \frac{|(\vbeta_k - \vbeta_{k-1})^\top [\nabla \ln p(\vy \mid \vbeta_k) - \nabla\ln p(\vy\mid \vbeta_{k-1})]|}{\parallel\nabla\ln p(\vy\mid \vbeta_k) - \nabla \ln p(\vy\mid \vbeta_{k-1}\parallel^2}
+$$
+
+### Newton's Method
+The iterations are as follows
+$$
+\vbeta_{k+1} \leftarrow \vbeta_k +  (X^\top D X)^{-1} X^\top(\vy - \sigma(X\vbeta_k))
+$$
+In practice we would solve the corresponding system for $\vect{d}$
+$$
+(X^\top D X)\vect{d}_k = X^\top(\vy - \sigma(X\vbeta_k))
+$$
+and then perform the update
+$$
+\vbeta_{k+1}\leftarrow \vbeta_k + \vect{d}_k
+$$
+
+### Iteratively Reweighted Least-Squares
+We can manipulate the expression in Newton's method by defining a new variable 
+$$
+\vz_k = X\vbeta_k + D^{-1}(\vy - \sigma(X\vbeta_k))
+$$
+Then the updates take the form
+$$
+\vbeta_{k+1}\leftarrow \vbeta_k + (X^\top D_k X)^{-1} X^\top D_k \vz_k
+$$
+In practice we would follow these steps
+
+- Evaluate $\veta_k = X\vbeta_k$ and $D_k$.
+- Solve the system $D_k \vect{r}_k = \vy - \sigma(\veta_k)$ for $\vect{r}_k$.
+- Compute $\vect{z}_k = \veta_k + \vect{r}_k$.
+- Solve the system $(X^\top D_k X)\vect{d}_k = X^\top D_k \vect{z}_k$ for $\vect{d}_k$.
+- Compute $\vbeta_{k+1} \leftarrow \vbeta_k + \vect{d}_k$
+
+Alternatively, noticing that $D_{ii}=\sigma(\vx_i^\top\vbeta)(1 - \sigma(\vx_i^\top\vbeta)) > 0$ one can take the square root of its elements and rewriting the problem as
+$$
+(D^{1/2}_kX)^\top (D^{1/2}_k X) \vect{d}_k = (D^{1/2}_k X)^\top (D^{1/2}_k \vect{z}_k)
+$$
+which is a simple least squares problem on the new variables $\widetilde{X}_k = D^{1/2}_kX$ and $\widetilde{\vect{z}}_k=D_k^{1/2}\vect{z}_k$, and can be solve by using the QR decomposition of $\widetilde{X} = QR$ by solving the following system for $\vect{d}_k$
+$$
+R \vect{d}_k = Q^\top \widetilde{\vect{z}}_k
+$$
+
+### Object-Oriented Implementation
 
 ```{r}
-data <- generate_binary_data(n1, n2, m1, s1, m2, s2)  # 1, -1
-X <- data %>% select(-y) %>% as.matrix %>% cbind(1, .)
-y <- data %>% select(y) %>%  as.matrix
+sigmoid <- function(x) 1.0 / (1.0 + exp(-x))
 ```
 
-### Object-Oriented
+
 ```{r}
-logistic_regression <- function(X, y, method="BFGS"){
-  # X needs to have first column of 1s for bias term
-  if (sum(X[, 1] == 1) != nrow(X)){
-    print("The first column of X must have only 1s. Added a column.")
-    X <- cbind(1, X)
+grad_ascent <- function(beta, niter=100, gamma=0.001){
+  for (i in 1:niter) beta <- beta + gamma * t(X) %*% (y - sigmoid(X %*% beta))
+  return(beta)
+}
+```
+
+```{r}
+newton_method <- function(beta, niter=100, alpha=0.1){
+  # Learning rate is suggested at 0.1. For 1.0 standard Newton method is recovered
+  for (i in 1:niter){
+    D_k <- diag(drop(sigmoid(X%*%beta)*(1 - sigmoid(X%*%beta))))
+    d_k <- solve(t(X)%*%D_k %*% X, alpha*t(X) %*% (y - sigmoid(X %*% beta)))
+    beta <- beta + d_k
   }
-  # Maximum Likelihood Estimator. Assume y in {+1, -1}
-  beta <- optim(
-    par=rep(0, ncol(X)),
-    fn=function(b) sum(log(exp(y * (X %*% b)) + 1)),
-    method=method)$par
-  # S3 Object
-  lr <- list(X=X, y=y, method=method, beta=beta)
+  return(beta)
+}
+```
+
+```{r}
+irls <- function(beta, niter=100){
+  for (i in 1:niter){
+    # Find z_k
+    eta_k   <- X %*% beta
+    sigma_k <- sigmoid(eta_k)
+    D_k     <- diag(drop(sigma_k*(1.0 - sigma_k)))
+    r_k     <- solve(D_k, y - sigma_k)  #(1.0/D_k) %*% (y - sigma_k) 
+    z_k     <- eta_k + r_k
+    # Solve IRLS with QR decomposition
+    qr_decomp <- qr(sqrt(D_k) %*% X)
+    Q         <- qr.Q(qr_decomp)
+    R         <- qr.R(qr_decomp)
+    d_k       <- backsolve(R, t(Q) %*% (sqrt(D_k) %*% z_k))
+    # Find new estimate of beta
+    beta <- beta + d_k
+  }
+  return(beta)
+}
+```
+
+
+```{r}
+logistic_regression <- function(X, y, cost="MLE", method="BFGS", sigmab=1.0, niter=100){
+  start <- matrix(0, nrow=ncol(X))
+  # Define cost functions
+  mle_cost <- function(beta) sum(log(1 + exp((1 - 2*y) * (X %*% beta))))
+  map_cost <- function(beta) (sigmab^2)*mle_cost(beta) + 0.5*sum(beta^2)
+  # Determine selected Cost Function
+  if      (cost == "MLE") costfunc <- mle_cost
+  else if (cost == "MAP") costfunc <- map_cost
+  # Use selected method for selected cost function
+  if (method=="BFGS") sol <- optim(par=start, fn=costfunc, method="BFGS")$par
+  else if (method=="GA") sol <- grad_ascent(start, niter=niter)
+  # Build S3 object and return it
+  lr <- list(X=X, y=y, sol=sol, cost=cost, method=method)
   class(lr) <- "logistic_regression"
   return(lr)
 }
 ```
 
-Define a `predict` method.
 ```{r}
-predict.logistic_regression <- function(x, xtest){
-  # predictions consist of probabilities. In this case we use a simple decision
-  # rule: > 0.5 then it's class 1 
-  # round transforms to prob=1, prob=0. Then 1 - ... to assign correct classes
-  classes  <- round(1.0 / (1.0 + exp(xtest %*% x$beta)))
-  classes[classes < 1] <- -1
-  return(classes)
+print.logistic_regression <- function(x, ...){
+  cat("S3 Object of Class logistic_regression.\n")
+  cat("Cost Function:        ", x$cost, "\n")
+  cat("Optimization Method:  ", x$method, "\n")
+  cat("Solution:             ", x$sol)
 }
 ```
 
-Define a plotting method.
-```{r}
-plot.logistic_regression <- function(x, y=NULL, ngrid=70, ...){
-  # Grid to show decision boundary 
-  coord_range <- apply(x$X, 2, range)
-  grid <- expand.grid(
-      X1=seq(from=coord_range[1, 2], to=coord_range[2, 2], length=ngrid),
-      X2=seq(from=coord_range[1, 3], to=coord_range[2, 3], length=ngrid)
-  )
-  # need to append 1 and transform to numeric, somehow it's losing it
-  grid <- matrix(as.numeric(unlist(grid)), nrow=ngrid^2)
-  # Predict at each point of the grid
-  cl <- predict(x, cbind(1, grid))
-  dfgrid <- data.frame(grid, y=cl)
-  # plot those points
-  ggplot() + 
-    geom_point(data=dfgrid, aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2, size=0.5) + 
-    geom_point(data=data.frame(x$X, y=x$y), aes(x=X1, y=X2, color=as_factor(y))) + 
-    labs(color="Class", title="Logistic Regression Decision Boundary") + 
-    theme(plot.title=element_text(hjust=0.5, size=20))
-}
-```
 
-Let's see this in action.
+
 ```{r}
 lr <- logistic_regression(X, y)
-plot(lr)
 ```
-
 
 
 
