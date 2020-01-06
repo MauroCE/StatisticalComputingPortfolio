@@ -458,6 +458,32 @@ $$
 \vbeta_{k+1}\leftarrow \vbeta_k + \vect{d}_k
 $$
 
+### Iteratively Reweighted Least-Squares
+We can manipulate the expression in Newton's method by defining a new variable 
+$$
+\vz_k = X\vbeta_k + D^{-1}(\vy - \sigma(X\vbeta_k))
+$$
+Then the updates take the form
+$$
+\vbeta_{k+1}\leftarrow \vbeta_k + (X^\top D_k X)^{-1} X^\top D_k \vz_k
+$$
+In practice we would follow these steps
+
+- Evaluate $\veta_k = X\vbeta_k$ and $D_k$.
+- Solve the system $D_k \vect{r}_k = \vy - \sigma(\veta_k)$ for $\vect{r}_k$.
+- Compute $\vect{z}_k = \veta_k + \vect{r}_k$.
+- Solve the system $(X^\top D_k X)\vect{d}_k = X^\top D_k \vect{z}_k$ for $\vect{d}_k$.
+- Compute $\vbeta_{k+1} \leftarrow \vbeta_k + \vect{d}_k$
+
+Alternatively, noticing that $D_{ii}=\sigma(\vx_i^\top\vbeta)(1 - \sigma(\vx_i^\top\vbeta)) > 0$ one can take the square root of its elements and rewriting the problem as
+$$
+(D^{1/2}_kX)^\top (D^{1/2}_k X) \vect{d}_k = (D^{1/2}_k X)^\top (D^{1/2}_k \vect{z}_k)
+$$
+which is a simple least squares problem on the new variables $\widetilde{X}_k = D^{1/2}_kX$ and $\widetilde{\vect{z}}_k=D_k^{1/2}\vect{z}_k$, and can be solve by using the QR decomposition of $\widetilde{X} = QR$ by solving the following system for $\vect{d}_k$
+$$
+R \vect{d}_k = Q^\top \widetilde{\vect{z}}_k
+$$
+
 # Logistic Regression $\{-1, 1\}$
 Notice that in the previous chapter we used $y_i\in \{0, 1\}$ with 
 $$
