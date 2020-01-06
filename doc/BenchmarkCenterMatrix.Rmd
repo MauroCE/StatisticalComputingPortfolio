@@ -1,0 +1,91 @@
+---
+title: "test"
+author: "Mauro Camara Escudero"
+date: "1/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(microbenchmark)
+```
+
+
+# Functions
+```{r}
+center_scale <- function(A){
+  return(scale(A, scale=FALSE))
+}
+```
+
+```{r}
+center_apply <- function(A){
+  return(apply(A, 2, function(col) col - mean(col)))
+}
+```
+
+```{r}
+center_sweep <- function(A, row.w = rep(1, nrow(A))/nrow(A)) {
+    get_average <- function(v) sum(v * row.w)/sum(row.w)
+    average <- apply(A, 2, get_average)
+    return(sweep(A, 2, average))
+}
+```
+
+```{r}
+center_sweep_colMeans <- function(A){
+  return(sweep(A, 2, colMeans(A)))
+}
+```
+
+```{r}
+center_colMeans <- function(A){
+  return(A - rep(colMeans(A), rep.int(nrow(A), ncol(A))))
+}
+```
+
+```{r}
+center_mean <- function(A){
+  return(A - rep(1, nrow(A)) %*% t(colMeans(A)))
+}
+```
+
+# Benchmark
+
+```{r}
+set.seed(123)
+rows <- 10000
+cols <- 10
+A <- matrix(runif(rows*cols, min=-100, max=100), nrow=rows, ncol=cols)
+B <- matrix(A, nrow=cols, ncol=rows)
+```
+
+```{r}
+microbenchmark(
+  center_scale(A),
+  center_apply(A),
+  center_sweep(A),
+  center_colMeans(A),
+  center_mean(A),
+  center_sweep_colMeans(A)
+)
+```
+
+```{r}
+microbenchmark(
+  center_scale(B),
+  center_apply(B),
+  center_sweep(B),
+  center_colMeans(B),
+  center_mean(B),
+  center_sweep_colMeans(B)
+)
+```
+
+
+
+
+
