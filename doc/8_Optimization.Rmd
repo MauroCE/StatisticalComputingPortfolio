@@ -445,12 +445,9 @@ $$
 ### Gradient Ascent (MLE, No Regularization)
 Updates take the form
 $$
-\vbeta_{k+1} \leftarrow \vbeta_k + \gamma_k X^\top(\vy - \sigma(X\vbeta_k))
+\vbeta_{k+1} \leftarrow \vbeta_k + \gamma X^\top(\vy - \sigma(X\vbeta_k))
 $$
-where the step size $\gamma_k$ can either be chosen small and constant or can be chosen using line search, leading to 
-$$
-\gamma_k = \frac{|(\vbeta_k - \vbeta_{k-1})^\top [\nabla \ln p(\vy \mid \vbeta_k) - \nabla\ln p(\vy\mid \vbeta_{k-1})]|}{\parallel\nabla\ln p(\vy\mid \vbeta_k) - \nabla \ln p(\vy\mid \vbeta_{k-1}\parallel^2}
-$$
+where the step size $\gamma$ can either be chosen small.
 
 ### Gradient Ascent (MAP, Ridge Regularization)
 The update takes the form
@@ -478,7 +475,7 @@ $$
 \vbeta_{k+1} \leftarrow \vbeta_k +  \alpha(\sigma_{\vbeta}^2X^\top D X - I_n)^{-1}\left[\sigma^2_{\vbeta}X^\top(\vy - \sigma(X\vbeta_k)) - \vbeta_k\right]
 $$
 
-### Object-Oriented Implementation
+### Implementations of the Optimization Methods
 
 ```{r}
 sigmoid <- function(x) 1.0 / (1.0 + exp(-x))
@@ -519,6 +516,8 @@ newton_method <- function(beta, niter=100, alpha=0.1, cost="MLE", sigmab=1.0){
 }
 ```
 
+### The Logistic Regression S3 Class and Its methods
+
 ```{r}
 logistic_regression <- function(X, y, cost="MLE", method="BFGS", sigmab=1.0, niter=100,
                                 alpha=0.1, gamma=0.001, laplace=FALSE){
@@ -545,6 +544,8 @@ logistic_regression <- function(X, y, cost="MLE", method="BFGS", sigmab=1.0, nit
 }
 ```
 
+We provide a print method to compare results later.
+
 ```{r}
 print.logistic_regression <- function(x, ...){
   cat("S3 Object of Class logistic_regression.\n")
@@ -554,6 +555,8 @@ print.logistic_regression <- function(x, ...){
 }
 ```
 
+The predict function will be useful for plotting. The sigmoid function gives the probability of being in class $1$.
+
 ```{r}
 predict.logistic_regression <- function(x, xtest){
   # sigmoid gives probability of being in class 1. So will give (rounded) 1 to 1
@@ -561,6 +564,33 @@ predict.logistic_regression <- function(x, xtest){
 }
 ```
 
+### Comparing Different Optimization Implementations
+Let's run all the different algorithms with both the MLE cost function and the MAP with an isotropic gaussian as a prior. Before doing that, we need to append a column of $1$s to the design matrix, for the intercept term.
+
+```{r}
+X <- cbind(1, X)
+
+lr_bfgs_mle <- logistic_regression(X, y, cost="MLE", method="BFGS")
+lr_bfgs_map <- logistic_regression(X, y, cost="MAP", method="BFGS")
+lr_ga_mle   <- logistic_regression(X, y, cost="MLE", method="GA", niter = 1000)
+lr_ga_map   <- logistic_regression(X, y, cost="MAP", method="GA", niter = 1000)
+lr_nm_mle   <- logistic_regression(X, y, cost="MLE", method="NEWTON")
+lr_nm_map   <- logistic_regression(X, y, cost="MAP", method="NEWTON")
+```
+
+In particular we can see how in general Newton is closer to BFGS than gradient ascent is. However, we can see that gradient ascent on the regularized problem seems to achieve similar results as the Newton and Quasi-Newton methods!
+
+```{r}
+print(lr_bfgs_mle)
+print(lr_ga_mle)
+print(lr_nm_mle)
+print(lr_bfgs_map)
+print(lr_ga_map)
+print(lr_nm_map)
+```
+
+### Plotting
+We can also specify what happens when we plot an object of class `logistic_regression`. In this case, we show the decision boundary and the confidence interval obtained from the Laplace Approximation to the posterior.
 
 ```{r}
 plot.logistic_regression <- function(x, y=NULL, ngrid=70, ...){
@@ -578,7 +608,7 @@ plot.logistic_regression <- function(x, y=NULL, ngrid=70, ...){
   # plot those points
   p <- ggplot(data=dfgrid)
   if (!is.null(x$prec)) {
-    # calculate confidence interval?
+    # calculate confidence interval
     sd <- sqrt(diag(solve(x$prec)))
     beta_min <- x$beta - sd
     beta_max <- x$beta + sd
@@ -588,25 +618,17 @@ plot.logistic_regression <- function(x, y=NULL, ngrid=70, ...){
     x_lims <- sort((ranges[, 3] * x$beta[3] + x$beta[1]) / (-x$beta[2]))
     x1_vals <- seq(from=x_lims[1], to=x_lims[2], length.out = 200)
     x2_vals <- -(x$beta[2]/x$beta[3])*x1_vals - (x$beta[1]/x$beta[3])
+    # define lines
+    min_line <- function(x) -beta_min[2]*x/beta_min[3] - beta_max[1]/beta_min[3]
+    max_line <- function(x) -beta_max[2]*x/beta_max[3] - beta_min[1]/beta_max[3]
+    # create a poly df
+    x_poly <- seq(from=ranges[1, 2], to=ranges[2, 2], length.out=500)
+    dfpoly <- data.frame(x=c(x_poly,x_poly), y=c(min_line(x_poly), max_line(x_poly)))
     # same but for confidence interval
-    x_lims_min <- sort((ranges[, 3] * beta_min[3] + beta_min[1]) / (-beta_min[2]))
-    x_lims_max <- sort((ranges[, 3] * beta_max[3] + beta_max[1]) / (-beta_max[2]))
-    x_tot_range <- range(c(x_lims_min, x_lims_max))
-    x1_vals_tot <- seq(from=x_tot_range[1], to=x_tot_range[2], length.out=200)
-    #x2_vals_min <- -(beta_min[2]/beta_min[3])*x1_vals_tot- (beta_min[1]/beta_min[3])
-    #x2_vals_max <- -(beta_max[2]/beta_max[3])*x1_vals_tot - (beta_max[1]/beta_max[3])
-    x2_vals_min <- -(beta_min[2]/beta_min[3])*x1_vals_tot- (beta_max[1]/beta_min[3])
-    x2_vals_max <- -(beta_max[2]/beta_max[3])*x1_vals_tot - (beta_min[1]/beta_max[3])
-    #x1_vals_min <- seq(from=x_lims_min[1], to=x_lims_min[2], length.out = 200)
-    #x1_vals_max <- seq(from=x_lims_max[1], to=x_lims_max[2], length.out = 200)
-    #x2_vals_min <- -(beta_min[2]/beta_min[3])*x1_vals_min - (beta_min[1]/beta_min[3])
-    #x2_vals_max <- -(beta_max[2]/beta_max[3])*x1_vals_max - (beta_max[1]/beta_max[3])
-    dflaplace <- data.frame(x1=x1_vals, x2=x2_vals,
-                            x1tot=x1_vals_tot,
-                            x2min=x2_vals_min, x2max=x2_vals_max)
+    dflaplace <- data.frame(x1=x1_vals, x2=x2_vals)
     p <- p +
       coord_cartesian(xlim=ranges[, 2], ylim=ranges[, 3])  +
-      geom_ribbon(data=dflaplace, aes(x=x1tot, ymin=x2min, ymax=x2max), fill="grey80") +
+      geom_polygon(data=dfpoly, aes(x=x, y=y), fill="grey80") + 
       geom_line(data=dflaplace, aes(x=x1, y=x2)) 
   }
   p + 
@@ -617,32 +639,10 @@ plot.logistic_regression <- function(x, y=NULL, ngrid=70, ...){
 }
 ```
 
-```{r}
-X <- cbind(1, X)
-```
-
+We can see indeed that the laplace approximation to the posterior is more uncertain when points from either side are closer together, as one would expect.
 
 ```{r}
-lr_bfgs_mle <- logistic_regression(X, y, cost="MLE", method="BFGS")
-lr_bfgs_map <- logistic_regression(X, y, cost="MAP", method="BFGS")
-lr_ga_mle   <- logistic_regression(X, y, cost="MLE", method="GA", niter = 1000)
-lr_ga_map   <- logistic_regression(X, y, cost="MAP", method="GA", niter = 1000)
-lr_nm_mle   <- logistic_regression(X, y, cost="MLE", method="NEWTON")
-lr_nm_map   <- logistic_regression(X, y, cost="MAP", method="NEWTON")
-```
-
-```{r}
-print(lr_bfgs_mle)
-print(lr_ga_mle)
-print(lr_nm_mle)
-print(lr_bfgs_map)
-print(lr_ga_map)
-print(lr_nm_map)
-```
-
-```{r}
-to_plot <- logistic_regression(X, y, cost="MAP", method="BFGS", laplace = TRUE)
-plot(to_plot)
+plot(logistic_regression(X, y, cost="MAP", method="BFGS", laplace = TRUE))
 ```
 
 
