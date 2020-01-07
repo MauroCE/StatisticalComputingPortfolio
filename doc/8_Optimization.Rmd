@@ -472,7 +472,7 @@ $$
 ### Newton's Method (MAP, Ridge Regularization)
 The update takes the form
 $$
-\vbeta_{k+1} \leftarrow \vbeta_k +  \alpha(\sigma_{\vbeta}^2X^\top D X - I_n)^{-1}\left[\sigma^2_{\vbeta}X^\top(\vy - \sigma(X\vbeta_k)) - \vbeta_k\right]
+\vbeta_{k+1} \leftarrow \vbeta_k + \alpha \left[\sigma^2_{\vbeta} X^\top D X + I\right]^{-1}\left(\sigma^2_{\vbeta} X^\top (\vy - \sigma(X\vbeta_k)) - \vbeta_k\right)
 $$
 
 ### Implementations of the Optimization Methods
@@ -506,7 +506,7 @@ newton_method <- function(beta, niter=100, alpha=0.1, cost="MLE", sigmab=1.0){
     for (i in 1:niter){
       D_k <- diag(drop(sigmoid(X%*%beta)*(1 - sigmoid(X%*%beta))))
       d_k <- solve(
-        sigmab^2*t(X)%*%D_k%*%X - diag(n),
+        sigmab^2*t(X)%*%D_k%*%X + diag(n),
         alpha*(sigmab^2*t(X)%*%(y - sigmoid(X %*% beta)) - beta)
       )
       beta <- beta + d_k

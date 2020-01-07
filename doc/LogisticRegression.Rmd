@@ -383,7 +383,7 @@ $$
 -\nabla_{\vbeta}^2 \ln p(\vbeta \mid \vy) = \vSigma_0^{-1} + \sum_{i=1}^n \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta)) \vx_i\vx_i^\top
 $$
 
-### Gradient Ascent Optimization
+### Gradient Ascent Optimization (MLE, No Regularization)
 The simplest way to find $\vbeta$ that maximizes the likelihood is to do **gradient ascent**. Remember that when working on the Laplace approximation we found the derivative of the log-likelihood with respect to the $j^{th}$ component of $\vbeta$. We can rearrange such an expression to get a nicer form.
 $$
 \begin{align}
@@ -425,7 +425,7 @@ $$
 \gamma_k = \frac{|(\vbeta_k - \vbeta_{k-1})^\top [\nabla \ln p(\vy \mid \vbeta_k) - \nabla\ln p(\vy\mid \vbeta_{k-1})]|}{\parallel\nabla\ln p(\vy\mid \vbeta_k) - \nabla \ln p(\vy\mid \vbeta_{k-1}\parallel^2}
 $$
 
-### Newton's Method
+### Newton's Method (MLE, No Regularization)
 Again, during the Laplace approximation section we found that the Hessian is given by 
 $$
 \nabla_{\vbeta}^2 \ln p(\vy \mid \vbeta) = -\sum_{i=1}^n \sigma(\vx_i^\top \vbeta)(1 - \sigma(\vx_i^\top \vbeta)) \vx_i\vx_i^\top
@@ -444,18 +444,42 @@ D = \text{diag}(\sigma(X\vbeta)(1 - \sigma(X\vbeta))) =
 0 & 0 & \ldots &\sigma(\vx_n^\top\vbeta)(1 - \sigma(\vx_n^\top\vbeta)) 
 \end{pmatrix}
 $$
-Newton's method then updates the weights as follows
+Newton's method then updates the weights as follows (where $\alpha$ is a learning rate to control convergence)
 $$
-\vbeta_{k+1} \leftarrow \vbeta_k + X^{-1} D_k^{-1}(\vy - \sigma(X\vbeta_k))
+\vbeta_{k+1} \leftarrow \vbeta_k +  \alpha(X^\top D X)^{-1} X^\top(\vy - \sigma(X\vbeta_k))
 $$
 
 Of course in practice we never invert the matrix but rather compute the direction $\vect{d}$ by solving the linear system
 $$
-X\vect{d}_k = D_k^{-1}(\vy - \sigma(X\vbeta_k))
+X^\top D X\vect{d}_k = \alpha X^\top(\vy - \sigma(X\vbeta_k))
 $$
 and then we find the next iterate as
 $$
 \vbeta_{k+1}\leftarrow \vbeta_k + \vect{d}_k
+$$
+
+### Gradient Ascent (MAP, Ridge Regularization)
+We want to maximize 
+$$
+\ln p(\vbeta\mid \vy) = \ln p(\vy \mid \vbeta) + \ln p(\vbeta) = - \sum_{i=1}^n \ln\left(1 + \exp\left((1 - 2 y_i) \vx_i^\top \vbeta\right)\right) - \frac{1}{2\sigma^2_{\vbeta}}\vbeta^\top \vbeta
+$$
+The gradient of the log posterior is given by
+$$
+\nabla_{\vbeta} \ln p(\vbeta \mid \vy) = X^\top (\vy - \sigma(X\vbeta)) - \frac{1}{\sigma^2_{\vbeta}}\vbeta
+$$
+Thus gradient descent with regularization to do MAP becomes
+$$
+\vbeta_{k+1}\leftarrow \vbeta_k + \gamma \left(\sigma^2_{\vbeta}X^\top (\vy - \sigma(X\vbeta_k)) - \vbeta_k\right)
+$$
+
+### Newton's Method (MAP, Ridge Regularization)
+Similarly, we want to maximize $\ln p(\vbeta\mid \vy)$. The Hessian is given by
+$$
+\nabla_{\vbeta}^2 \ln p(\vbeta \mid \vy) = - X^\top D X - \frac{1}{\sigma^2_{\vbeta}}I
+$$
+therefore the Newton's Method update formula becomes
+$$
+\vbeta_{k+1} \leftarrow \vbeta_k + \alpha \left[\sigma^2_{\vbeta} X^\top D X + I\right]^{-1}\left(\sigma^2_{\vbeta} X^\top (\vy - \sigma(X\vbeta_k)) - \vbeta_k\right)
 $$
 
 ### Iteratively Reweighted Least-Squares
