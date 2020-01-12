@@ -534,7 +534,11 @@ logistic_regression <- function(X, y, cost="MLE", method="BFGS", sigmab=1.0, nit
   if      (cost == "MLE") costfunc <- mle_cost
   else if (cost == "MAP") costfunc <- map_cost
   # Use selected method for selected cost function
-  if      (method=="BFGS")   sol <- optim(par=start, fn=costfunc, method=method)$par
+  if      (method=="BFGS") {
+    result <- optim(par=start, fn=costfunc, method=method, hessian = TRUE)
+    sol <- result$par
+    hessian <- result$hessian
+  }
   else if (method=="GA")     sol <- grad_ascent(start, niter, gamma, cost, sigmab)
   else if (method=="NEWTON") sol <- newton_method(start, niter, alpha, cost, sigmab)
   # Laplace only works with MAP, not MLE
@@ -543,7 +547,8 @@ logistic_regression <- function(X, y, cost="MLE", method="BFGS", sigmab=1.0, nit
   second <- t(X) %*% diag(drop(sigmoid(X %*% sol)*(1-sigmoid(X %*% sol)))) %*% X
   precision <- first + second
   # Build S3 object and return it
-  lr <- list(X=X, y=y, beta=sol, cost=cost, method=method, prec=precision, costfunc=costfunc)
+  lr <- list(X=X, y=y, beta=sol, cost=cost, method=method, prec=precision, costfunc=costfunc,
+             hessian=hessian)
   class(lr) <- "logistic_regression"
   return(lr)
 }
