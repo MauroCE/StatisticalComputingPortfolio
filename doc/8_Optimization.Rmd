@@ -347,19 +347,6 @@ naive_bayes <- function(X, y){
 }
 ```
 
-```{r, eval=FALSE}
-naive_bayes <- function(X, y){
-  # For every class, find mean and variance (one class per row)
-  means <- calc_func_per_class(X, y, mean)
-  sds  <- calc_func_per_class(X, y, sd)
-  # Create a gaussian for each class
-  nb <- list(means=means, sds=sds, X=X, y=y)
-  class(nb) <- "naive_bayes"
-  return(nb)
-}
-```
-
-
 ### Predict Method
 ```{r}
 predict.naive_bayes <- function(x, xtest){
@@ -383,33 +370,6 @@ predict.naive_bayes <- function(x, xtest){
   return(classes - 1)
 }
 ```
-
-```{r, eval=FALSE}
-predict.naive_bayes <- function(x, xtest){
-  # for every test point (row of xtest), want to calculate the density value for
-  # every class, and pick the highest one. Let's instantiate a matrix of the correct dimensions.
-  n_observations <- nrow(xtest)
-  n_classes      <- nrow(x$means)
-  n_features     <- ncol(xtest)
-  table <- matrix(0, nrow=n_observations, ncol=n_classes)  # number of test points times n classes
-  # calculate prior somehow?
-  priors <- log(apply(make_flags(x$y), 2, function(f) length(x$y[f, ]) / length(x$y)))
-  # need two for loops unfortunately
-  for (r_ix in 1:n_observations){
-    values <- priors
-    for (c_ix in 1:n_classes){
-      for (f_ix in 1:n_features){
-        x_ij <- as.double(xtest[r_ix, f_ix])
-        values[c_ix] <- values[c_ix] + dnorm(x_ij, mean=x$means[c_ix, f_ix], sd=x$sds[c_ix, f_ix], log=TRUE)
-      }
-    }
-    table[r_ix, ] <- values
-  }
-  classes <- apply(table, 1, which.max)
-  return(classes - 1)
-}
-```
-
 
 ### Plot Method for Naive Bayes
 ```{r}
@@ -583,7 +543,7 @@ logistic_regression <- function(X, y, cost="MLE", method="BFGS", sigmab=1.0, nit
   second <- t(X) %*% diag(drop(sigmoid(X %*% sol)*(1-sigmoid(X %*% sol)))) %*% X
   precision <- first + second
   # Build S3 object and return it
-  lr <- list(X=X, y=y, beta=sol, cost=cost, method=method, prec=precision)
+  lr <- list(X=X, y=y, beta=sol, cost=cost, method=method, prec=precision, costfunc=costfunc)
   class(lr) <- "logistic_regression"
   return(lr)
 }
