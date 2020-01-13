@@ -1,0 +1,428 @@
+---
+output: html_document
+---
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{listings}
+\usepackage{color}
+\usepackage[T1]{fontenc}
+\usepackage{fullpage}
+\usepackage{hyperref}
+\usepackage{amssymb}
+\usepackage{fullpage}
+\usepackage{color}
+\usepackage{algorithm2e}
+\usepackage{bbm}
+\DeclareRobustCommand{\rchi}{{\mathpalette\irchi\relax}}
+\newcommand{\irchi}[2]{\raisebox{\depth}{$#1\chi$}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newenvironment{rcases}
+  {\left.\begin{aligned}}
+  {\end{aligned}\right\rbrace}
+\newcommand{\def}{\overset{\text{def}}{:=}}
+\newcommand{\lop}{\mathcal{L}}
+\newcommand{\vect}[1]{\boldsymbol{\mathbf{#1}}}
+\newcommand{\norm}[1]{||#1||}
+\newcommand{\vx}{\vect{x}}
+\newcommand{\vb}{\vect{b}}
+\newcommand{\vy}{\vect{y}}
+\newcommand{\vz}{\vect{z}}
+\newcommand{\ve}{\vect{e}}
+\newcommand{\vc}{\vect{c}}
+\newcommand{\vr}{\vect{r}}
+\newcommand{\vphi}{\vect{\phi}}
+\newcommand{\vf}{\vect{f}}
+\newcommand{\vY}{\vect{Y}}
+\newcommand{\vX}{\vect{X}}
+\newcommand{\vw}{\vect{w}}
+\newcommand{\thetahatis}{\widehat{\theta}^{(s)}_i}
+\newcommand{\thetahat}[1]{\widehat{\theta}^{(#1)}_i}
+\newcommand{\vm}{\vect{m}}
+\newcommand{\redmath}[1]{\mathbin{\textcolor{red}{\vect{#1}}}}
+\newcommand{\redtext}[1]{\textcolor{red}{\vect{#1}}}
+\newcommand{\vzero}{\vect{0}}
+\newcommand{\vt}{\vect{t}}
+\newcommand{\linearpredictor}{\vx_i^T\vbeta}
+\newcommand{\vmu}{\vect{\mu}}
+\newcommand{\vnu}{\vect{\nu}}
+\newcommand{\veta}{\vect{\eta}}
+\newcommand{\vbeta}{\vect{\beta}}
+\newcommand{\vepsilon}{\vect{\epsilon}}
+\newcommand{\Pbb}{\mathbb{P}}
+\newcommand{\Ebb}{\mathbb{E}}
+\newcommand{\vdelta}{\vect{\delta}}
+\newcommand{\Rbb}{\mathbb{R}}
+\newcommand{\vxi}{\vect{\xi}}
+\newcommand{\sigmalg}{\sigma\text{-algebra}}
+\newcommand{\vu}{\vect{u}}
+\newcommand{\vW}{\vect{W}}
+\newcommand{\vlambda}{\vect{\lambda}}
+\newcommand{\dataset}{\mathcal{D}}
+\newcommand{\vS}{\vect{S}}
+\newcommand{\sample}{\vz^{(l)}}
+\newcommand{\MYhref}[3][blue]{\href{#2}{\color{#1}{#3}}}
+\newcommand{\sol}[1]{\vx^{(#1)}}
+\newcommand{\qtext}[1]{\quad\quad \text{#1}}
+\newcommand{\vtheta}{\vect{\theta}}
+\newcommand{\bi}[1]{\textbf{\textit{#1}}}
+\newcommand{\iid}{\overset{\text{i.i.d.}}{\sim}}
+\newcommand{\uniform}{\mathcal{U}(0, 1)}
+\newcommand{\qimplies}{\quad\Longrightarrow\quad}
+\newcommand{\tp}{\tilde{p}}
+\newcommand{\nul}{\Theta^{(0)}}
+\newcommand{\alter}{\Theta^{(1)}}
+\newcommand{\const}{\mathcal{Z}}
+\newcommand{\tq}{\tilde{q}}
+\newcommand{\tvx}{\widetilde{\vx}}
+\newcommand{\vK}{\vect{K}}
+\newcommand{\tr}{\tilde{r}}
+\newcommand{\like}{\mathcal{L}}
+\newcommand{\kl}[2]{\text{KL}(#1\,\,||\,\,#2)}
+\newcommand{\logit}[1]{\log\left(\frac{#1}{1-#1}\right)}
+\newcommand{\elbo}[1]{\text{elbo}(#1)}
+\newcommand{\eval}{\biggr\rvert}
+\newcommand{\normal}{\mathcal{N}}
+\newcommand{\vk}{\vect{k}}
+\newcommand{\class}{\mathcal{C}}
+\newcommand{\infor}{\mathcal{I}}
+\newcommand{\variance}{\text{Var}}
+\newcommand{\vfx}{\vect{f}(X)}
+\newcommand{\events}{\mathcal{F}}
+\newcommand{\vSigma}{\vect{\Sigma}}
+\newcommand{\fls}{f_{\text{LS}}}
+\newcommand{\Ebbeps}[1]{\Ebb_{\vepsilon}\left[#1\right]}
+\newcommand{\vKc}{\vect{\mathcal{K}}}
+\newcommand{\Var}[1]{\text{Var}\left[#1\right]}
+\newcommand{\lp}[3]{
+    \begin{equation*}
+    \begin{alignat}{2}
+    &\!\min       &\qquad& #1\\
+    &\text{s.t.} &      & #2\\
+    &                  &      & #3
+    \end{alignat}
+    \end{equation*}
+}
+\newcommand{\ip}[2]{\langle #1\, , \, #2 \rangle}
+\newcommand{\lpmax}[3]{
+    \begin{equation*}
+    \begin{alignat}{2}
+    &\!\max       &\qquad& #1\\
+    &\text{s.t.} &      & #2\\
+    &                  &      & #3
+    \end{alignat}
+    \end{equation*}
+}
+\newcommand{\iphi}[2]{\ip{\phi(\vx_{#1})}{\phi(\vx_{#2})}}
+\newcommand{\fourmatrix}[4]{
+\begin{pmatrix}
+#1 & \cdots & #2 \\
+\vdots & \ddots & \vdots \\
+#3 & \cdots & #4
+\end{pmatrix}
+}
+\newcommand{\Cov}[2]{\text{Cov}\left[#1, #2\right]}
+\newcommand{\wls}{\vw_{\text{LS}}}
+\newcommand{\fxwls}{f(\vx, \vw_{\text{LS}})}
+\newcommand{\vPhi}{\vect{\Phi}}
+\newcommand{\wlsr}{\vw_{\text{LS-R}}}
+\newcommand{\mcal}{\mathcal{M}}
+\newcommand{\yhat}{\widehat{y}}
+\newcommand{\alphahat}{\widehat{\alpha}}
+\newcommand{\expectation}[1]{\Ebb\left[#1\right]}
+\newcommand{\Nbb}{\mathbb{N}}
+\newcommand{\indicator}[1]{\mathbbm{1}_{\left\{#1\right\}}}
+\newcommand{\ustop}{U^{\text{stopped}}}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Metropolis-Hastings
+```{r, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(tidyverse)
+library(gridExtra)
+library(MASS)
+```
+
+### Random Walk Metropolis Hastings
+Let's implement a **Random Walk Metropolis-Hastings** algorithm with a symmetric proposal density.
+
+```{r}
+rwmh <- function(start, niter, proposal, target){
+  # Store accepted, rejected and all samples
+  accepted <- matrix(NA, nrow=niter, dimnames=list(NULL, "accepted"))
+  rejected <- matrix(NA, nrow=niter, dimnames=list(NULL, "rejected"))
+  samples  <- matrix(NA, nrow=niter)
+  # Set first sample to start and sample uniform random numbers for efficiency
+  z <- start
+  accepted[1] <- z;    rejected[1] <- z;    samples[1] <- z
+  u <- runif(niter)
+  # Draw candidate, calculate acceptance prob for niter-1 times
+  for (i in 2:niter){
+    cand <- proposal$sample(z)
+    prob <- min(1, target$density(cand)/target$density(z))
+    if (u[i] <= prob) {accepted[i] <- cand;    z <- cand}
+    else              {rejected[i] <- cand}
+    samples[i] <- z
+  }
+  result <- list("samples"=samples, "accepted"=accepted, "rejected"=rejected,
+                 "proposal"=proposal, "target"=target)
+  return(result)
+}
+```
+
+### Plotting Function
+The following function can be called to run one of the sampling algorithm with a given proposal and a given target density. It will plot a density of the target distribution and a histogram of the samples generated by the algorithm.
+
+```{r}
+histogram_and_trace_plot <- function(out){
+  # Create dataframe for target line plot and for samples histogram
+  x_values  <- seq(from=out$target$range[1], to=out$target$range[2], length.out=100)
+  lineplot  <- data.frame(x=x_values, y=out$target$density(x_values))
+  histogram <- data.frame(x=out$samples)
+  # Line plot + histogram
+  bindwidth <- (out$target$range[2]-out$target$range[1]) / 50
+  p <- ggplot() +
+    geom_histogram(data=histogram, aes(x=x, stat(density)), binwidth = bindwidth, 
+                   alpha=0.5, fill="turquoise1", color="turquoise4") +
+    geom_line(data=lineplot, aes(x=x, y=y), size=1) + 
+    ggtitle(paste("Target: ", out$target$name, " Proposal: ", out$proposal$name)) + 
+    theme_minimal() + 
+    theme(plot.title=element_text(hjust=0.5, size=15))
+  # Trace plot color-coded by acceptance/rejection
+  pair <- data.frame(cbind(out$accepted, out$rejected)) %>%
+    transmute(sample    = coalesce(.$accepted, .$rejected), 
+              flag      = as.factor((!is.na(.$accepted))), 
+              iteration = row_number())
+  q <- ggplot(data=pair) + 
+    geom_point(aes(x=iteration, y=sample, color=flag), alpha=0.5) + 
+    labs(color="Legend", size=15) + 
+    scale_color_hue(labels=c("rejected", "accepted")) + 
+    ggtitle("Trace Plot") + 
+    theme_minimal() +
+    theme(plot.title=element_text(hjust=0.5, size=15))
+  grid.arrange(p, q, ncol=1)
+}
+```
+
+### Generate Functions and Data
+
+```{r}
+# Targets
+gamma_density <- function(x) dgamma(x, shape=2.0, scale=2.0)
+beta_density <- function(x) dbeta(x, shape1=2.0, shape2=5.0)
+chisq_density <- function(x) dchisq(x, df=3.0)
+normal_density <- function(x) dnorm(x, mean=3)
+# Proposals
+normal_sample <- function(x) rnorm(1, mean=x)
+beta_sample <- function(x) rbeta(1, shape1=2.0, shape2=5.0)
+gamma_sample <- function(x) rgamma(1, shape=2.0, scale=2.0)
+exponential_sample <- function(x) rexp(1)
+# named lists
+gamma <- list("density"=gamma_density, "sample"=gamma_sample, "name"="Gamma", "range"=c(0.0, 20.0))
+beta <- list("density"=beta_density, "sample"=beta_sample, "name"="Beta", "range"=c(0.0, 1.0))
+normal <- list("density"=normal_density, "sample"=normal_sample, "name"="Normal")
+chisq <- list("density"=chisq_density, "sample"=NULL, "name"="Chi-Squared", "range"=c(0.0, 20.0))
+exponential <- list("density"=dexp, "sample"=exponential_sample, "name"="Exponential", "range"=c(0.0, 6.0))
+```
+
+### Results
+
+```{r}
+histogram_and_trace_plot(rwmh(0.5, 100000, normal, beta))
+```
+
+
+```{r}
+histogram_and_trace_plot(rwmh(15, 100000, normal, gamma))
+```
+
+
+```{r}
+histogram_and_trace_plot(rwmh(6, 100000, normal, exponential))
+```
+
+```{r}
+histogram_and_trace_plot(rwmh(15, 100000, normal, chisq))
+```
+
+### Logistic Regression Setup
+Recall from the Optimization portfolio we worked with Logistic Regression. 
+Using an isotropic Gaussian prior on our parameters the log posterior looks like this
+$$
+\begin{align}
+\ln p(\vbeta \mid \vy) &\propto \ln p(\vy\mid \vbeta) + \ln p(\vbeta) \\
+&= \sum_{i=1}^n y_i \ln(p_i) + (1 - y_i)\ln(1 - p_i) + -\frac{1}{2\sigma_{\vbeta}^2}\vbeta^\top \vbeta \\
+&\propto -\sigma^2_{\vbeta}\sum_{i=1}^n\ln\left(1 + \exp((1 - 2y_i)\vx_i^\top\vbeta)\right) - \frac{1}{2}\vbeta^\top\vbeta
+\end{align}
+$$
+Now notice that this distribution is on the $\vbeta$, which means that our samples are samples of parameters.
+
+### Data Generation
+Create data from two multivariate normal distributions.
+```{r}
+n1 <- 100
+n2 <- 100
+m1 <- c(6, 6)
+m2 <- c(-1, 1)
+s1 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
+s2 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
+generate_binary_data <- function(n1, n2, m1, s1, m2, s2){
+  # x1, x2 and y for both classes (both 0,1 and -1,1 will be created for convenience)
+  class1 <- mvrnorm(n1, m1, s1)
+  class2 <- mvrnorm(n2, m2, s2)
+  y      <- c(rep(0, n1), rep(1, n2))   # {0 , 1}
+  y2     <- c(rep(-1, n1), rep(1, n2))  # {-1, 1}
+  # Generate dataframe
+  data <- data.frame(rbind(class1, class2), y, y2)
+  return(data)
+}
+# Generate reproducible data
+set.seed(123)
+data <- generate_binary_data(n1, n2, m1, s1, m2, s2)
+X <- data %>% dplyr::select(-y, -y2) %>% as.matrix
+y <- data %>% dplyr::select(y) %>% as.matrix
+# need to add another colum to x to account for the bias
+X <- cbind(1, X)
+```
+
+### Multivariate Random-Walk Metropolis-Hastings Algorithm on Log Posterior
+```{r}
+rwmh_multivariate_log <- function(start, niter, logtarget, vcov, thinning, burnin){
+    # Set current z to the initial point and calculate its log target to save computations
+    z  <- start    # It's a column vector
+    pz <- logtarget(start)
+    # create vector deciding iterations where we record the samples
+    store <- seq(from=(1+burnin), to=niter, by=thinning)
+    #n_samples <- (niter - burnin) %/% thinning
+    # Generate matrix containing the samples. Initialize first sample with the starting value
+    samples <- matrix(0, nrow=length(store), ncol=nrow(start))
+    samples[1, ] <- start
+    # Generate uniform random numbers in advance, to save computation. Take logarithm?
+    log_u <- log(runif(niter))
+    # Proposal is a multivariate standard normal distribution. Generate samples and
+    # later on use linearity property of Gaussian distribution
+    vcov <- diag(nrow(start)) %*% vcov
+    normal_shift <- mvrnorm(n=niter, mu=c(0,0,0), Sigma=vcov)
+    for (i in 2:niter){
+        # Sample a candidate
+        candidate <- z + normal_shift[i, ]
+        # calculate log target of candidate and store it in case it gets accepted
+        p_candidate <- logtarget(candidate)
+        # use decision rule explained in blog posts
+        if (log_u[i] <= p_candidate - pz){
+            # Accept!
+            z  <- candidate
+            pz <- p_candidate
+        }
+        # Finally add the sample to our matrix of samples
+        if (i %in% store) samples[which(store==i), ] <- z
+    }
+    return(samples)
+}
+```
+
+### Define Function Proportional to Log Posterior and Run RWMH
+```{r}
+# Up to normalization constant
+log_posterior_unnormalized <- function(beta){
+    log_prior      <- -0.5*sum(beta^2)
+    log_likelihood <- -sum(log(1 + exp((1 - 2*y) * (X %*% beta))))
+    return(log_prior + log_likelihood)
+}
+# To start the algorithm more efficiently, start from MAP estimate
+optim_results <- optim(c(0,0,0), function(x) - log_posterior_unnormalized(x), method="BFGS", hessian=TRUE)
+start <- matrix(optim_results$par)
+# Use inverse of approximate hessian matrix as vcov of normal proposal
+vcov  <- solve(optim_results$hessian)
+# Run algorithm without burnin, with no thinning
+niter <- 100000
+thinning <- 1
+burnin <- 0
+samples <- rwmh_multivariate_log(start, niter, log_posterior_unnormalized, vcov, thinning, burnin)
+```
+
+### Trace Plots
+
+```{r}
+samplesdf <- data.frame(samples) %>% mutate(iterations=row_number())
+trace1 <- ggplot(data=samplesdf, aes(x=iterations, y=X1)) + geom_line()
+trace2 <- ggplot(data=samplesdf, aes(x=iterations, y=X2)) + geom_line()
+trace3 <- ggplot(data=samplesdf, aes(x=iterations, y=X3)) + geom_line()
+grid.arrange(trace1, trace2, trace3, ncol=1)
+```
+
+### Histograms of Samples
+
+```{r}
+hist1 <- ggplot(data=samplesdf, aes(x=X1, stat(density))) + 
+  geom_histogram(binwidth=0.05, alpha=0.5, fill="turquoise1", color="turquoise4")
+hist2 <- ggplot(data=samplesdf, aes(x=X2, stat(density))) + 
+  geom_histogram(binwidth=0.05, alpha=0.5, fill="turquoise1", color="turquoise4")
+hist3 <- ggplot(data=samplesdf, aes(x=X3, stat(density))) + 
+  geom_histogram(binwidth=0.05, alpha=0.5, fill="turquoise1", color="turquoise4")
+grid.arrange(hist1, hist2, hist3, ncol=1)
+```
+
+
+### Plot decision boundary for some samples
+The formula for the decision boundary is given by
+$$
+x_2 = -\frac{\beta_2}{\beta_3}x_1 -\frac{\beta_1}{\beta_3}
+$$
+
+Now we use this formula to obtain the sample decision boundaries.
+
+```{r}
+# Select only some samples
+samples_to_select <- 200
+samples_subset <- samples[sample(1:nrow(samples), samples_to_select), ]
+# Calculate slope and intercept for those samples. Then calculate x2 from x1
+linecoefs <- cbind(-samples_subset[, 2]/samples_subset[, 3], - samples_subset[, 1] / samples_subset[, 3])
+x2_vals <- apply(linecoefs, 1, function(row) X[, 2]*row[1] + row[2])
+# Store x2 values together with x1 values from X. Then melt to plot all lines 
+dfsample_lines <- data.frame(x1=X[, 2], x2_vals) %>% 
+  gather("key", "value", -x1)
+# Create dataframe containing values for the MAP line
+dfmap <- data.frame(x1=X[, 2], y=(-start[2, ]/start[3, ])*X[, 2] + (-start[1, ]/start[3, ]))
+ggplot() +
+  geom_point(data=data, aes(x=X1, y=X2, color=as_factor(y))) +    # Dataset scatter plot
+  coord_cartesian(xlim=c(-4, 9), ylim=c(-5, 13)) + 
+  geom_line(data=dfsample_lines, aes(x=x1, y=value, group=key), 
+            alpha=0.1, color="grey50") +                          # Sample Lines
+  geom_line(data=dfmap, aes(x=x1, y=y), color="black", size=1) +  # MAP line
+  labs(color="Class", title="Sample Decision Boundaries") + 
+  theme(plot.title=element_text(hjust=0.5, size=20))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
