@@ -2,142 +2,25 @@
 title: "Optimization for Classification"
 output: html_document
 ---
-\usepackage[english]{babel}
-\usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{graphicx}
-\usepackage[colorinlistoftodos]{todonotes}
-\usepackage{listings}
-\usepackage{color}
-\usepackage[T1]{fontenc}
-\usepackage{fullpage}
-\usepackage{hyperref}
-\usepackage{amssymb}
-\usepackage{fullpage}
-\usepackage{color}
-\usepackage{algorithm2e}
 \usepackage{bbm}
-\DeclareRobustCommand{\rchi}{{\mathpalette\irchi\relax}}
-\newcommand{\irchi}[2]{\raisebox{\depth}{$#1\chi$}}
-\DeclareMathOperator*{\argmax}{arg\,max}
-\DeclareMathOperator*{\argmin}{arg\,min}
-\newenvironment{rcases}
-  {\left.\begin{aligned}}
-  {\end{aligned}\right\rbrace}
-\newcommand{\def}{\overset{\text{def}}{:=}}
-\newcommand{\lop}{\mathcal{L}}
+\usepackage{bm}
+\usepackage{amssymb}
+\usepackage[utf8]{inputenc}
 \newcommand{\vect}[1]{\boldsymbol{\mathbf{#1}}}
-\newcommand{\norm}[1]{||#1||}
 \newcommand{\vx}{\vect{x}}
-\newcommand{\vb}{\vect{b}}
 \newcommand{\vy}{\vect{y}}
-\newcommand{\vz}{\vect{z}}
-\newcommand{\ve}{\vect{e}}
-\newcommand{\vc}{\vect{c}}
-\newcommand{\vr}{\vect{r}}
-\newcommand{\vphi}{\vect{\phi}}
-\newcommand{\vf}{\vect{f}}
 \newcommand{\vY}{\vect{Y}}
 \newcommand{\vX}{\vect{X}}
-\newcommand{\vw}{\vect{w}}
-\newcommand{\thetahatis}{\widehat{\theta}^{(s)}_i}
-\newcommand{\thetahat}[1]{\widehat{\theta}^{(#1)}_i}
-\newcommand{\vm}{\vect{m}}
-\newcommand{\redmath}[1]{\mathbin{\textcolor{red}{\vect{#1}}}}
-\newcommand{\redtext}[1]{\textcolor{red}{\vect{#1}}}
 \newcommand{\vzero}{\vect{0}}
-\newcommand{\vt}{\vect{t}}
-\newcommand{\linearpredictor}{\vx_i^T\vbeta}
-\newcommand{\vmu}{\vect{\mu}}
-\newcommand{\vnu}{\vect{\nu}}
-\newcommand{\veta}{\vect{\eta}}
 \newcommand{\vbeta}{\vect{\beta}}
-\newcommand{\vepsilon}{\vect{\epsilon}}
 \newcommand{\Pbb}{\mathbb{P}}
 \newcommand{\Ebb}{\mathbb{E}}
-\newcommand{\vdelta}{\vect{\delta}}
 \newcommand{\Rbb}{\mathbb{R}}
-\newcommand{\vxi}{\vect{\xi}}
-\newcommand{\sigmalg}{\sigma\text{-algebra}}
-\newcommand{\vu}{\vect{u}}
-\newcommand{\vW}{\vect{W}}
-\newcommand{\vlambda}{\vect{\lambda}}
-\newcommand{\dataset}{\mathcal{D}}
-\newcommand{\vS}{\vect{S}}
-\newcommand{\sample}{\vz^{(l)}}
-\newcommand{\MYhref}[3][blue]{\href{#2}{\color{#1}{#3}}}
-\newcommand{\sol}[1]{\vx^{(#1)}}
-\newcommand{\qtext}[1]{\quad\quad \text{#1}}
-\newcommand{\vtheta}{\vect{\theta}}
-\newcommand{\bi}[1]{\textbf{\textit{#1}}}
-\newcommand{\iid}{\overset{\text{i.i.d.}}{\sim}}
-\newcommand{\uniform}{\mathcal{U}(0, 1)}
 \newcommand{\qimplies}{\quad\Longrightarrow\quad}
-\newcommand{\tp}{\tilde{p}}
-\newcommand{\nul}{\Theta^{(0)}}
-\newcommand{\alter}{\Theta^{(1)}}
-\newcommand{\const}{\mathcal{Z}}
-\newcommand{\tq}{\tilde{q}}
-\newcommand{\tvx}{\widetilde{\vx}}
-\newcommand{\vK}{\vect{K}}
-\newcommand{\tr}{\tilde{r}}
-\newcommand{\like}{\mathcal{L}}
-\newcommand{\kl}[2]{\text{KL}(#1\,\,||\,\,#2)}
-\newcommand{\logit}[1]{\log\left(\frac{#1}{1-#1}\right)}
-\newcommand{\elbo}[1]{\text{elbo}(#1)}
-\newcommand{\eval}{\biggr\rvert}
-\newcommand{\normal}{\mathcal{N}}
-\newcommand{\vk}{\vect{k}}
-\newcommand{\class}{\mathcal{C}}
-\newcommand{\infor}{\mathcal{I}}
-\newcommand{\variance}{\text{Var}}
-\newcommand{\vfx}{\vect{f}(X)}
-\newcommand{\events}{\mathcal{F}}
 \newcommand{\vSigma}{\vect{\Sigma}}
-\newcommand{\fls}{f_{\text{LS}}}
-\newcommand{\Ebbeps}[1]{\Ebb_{\vepsilon}\left[#1\right]}
-\newcommand{\vKc}{\vect{\mathcal{K}}}
-\newcommand{\Var}[1]{\text{Var}\left[#1\right]}
-\newcommand{\lp}[3]{
-    \begin{equation*}
-    \begin{alignat}{2}
-    &\!\min       &\qquad& #1\\
-    &\text{s.t.} &      & #2\\
-    &                  &      & #3
-    \end{alignat}
-    \end{equation*}
-}
-\newcommand{\ip}[2]{\langle #1\, , \, #2 \rangle}
-\newcommand{\lpmax}[3]{
-    \begin{equation*}
-    \begin{alignat}{2}
-    &\!\max       &\qquad& #1\\
-    &\text{s.t.} &      & #2\\
-    &                  &      & #3
-    \end{alignat}
-    \end{equation*}
-}
-\newcommand{\iphi}[2]{\ip{\phi(\vx_{#1})}{\phi(\vx_{#2})}}
-\newcommand{\fourmatrix}[4]{
-\begin{pmatrix}
-#1 & \cdots & #2 \\
-\vdots & \ddots & \vdots \\
-#3 & \cdots & #4
-\end{pmatrix}
-}
-\newcommand{\Cov}[2]{\text{Cov}\left[#1, #2\right]}
-\newcommand{\wls}{\vw_{\text{LS}}}
-\newcommand{\fxwls}{f(\vx, \vw_{\text{LS}})}
-\newcommand{\vPhi}{\vect{\Phi}}
-\newcommand{\wlsr}{\vw_{\text{LS-R}}}
-\newcommand{\mcal}{\mathcal{M}}
 \newcommand{\yhat}{\widehat{y}}
-\newcommand{\alphahat}{\widehat{\alpha}}
-\newcommand{\expectation}[1]{\Ebb\left[#1\right]}
-\newcommand{\Nbb}{\mathbb{N}}
-\newcommand{\indicator}[1]{\mathbbm{1}_{\left\{#1\right\}}}
-\newcommand{\ustop}{U^{\text{stopped}}}
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -149,11 +32,11 @@ library(tidyverse)
 ```
 
 # Utility functions
-
+The `kernel_matrix` function calculates the kernel matrix with squared exponential in a vectorized way. This function is borrowed from the `profiling` portfolio.
 ```{r}
 kernel_matrix <- function(X, sigmasq, Y=NULL){
   if (is.null(Y)){
-    Y <- X  # TODO: This might be risky for big matrices. How does R copy work? Maybe split the code into two?
+    Y <- X
   }
   n <- nrow(X)
   m <- nrow(Y)
@@ -161,13 +44,12 @@ kernel_matrix <- function(X, sigmasq, Y=NULL){
   Xnorm <- matrix(apply(X^2, 1, sum), n, m)
   Ynorm <- matrix(apply(Y^2, 1, sum), n, m, byrow=TRUE)
   XY <- tcrossprod(X, Y)
-  # TODO: In this case do we use median of XY? If we are using it for prediction
-  # I think sigmasq should be found only from training set, not from testing set.
-  # Therefore we should pass sigmasq as a parameter in this function, and should be calculated 
-  # beforehand.
   return(exp(-(Xnorm - 2*XY + Ynorm) / (2*sigmasq)))
 }
+```
 
+The function `make_flags` takes a `y` vector of length `n` and containing `K` class labels `0`, `1`, \ldots, `K-1` and returns a matrix with `n` rows and `K` columns, where each row is a one-hot encoding for the class corresponding to that observation.
+```{r}
 # Creates a logical one-hot encoding, assumes classes 0, .. , K-1
 make_flags <- function(y){
   classes <- unique(y)
@@ -178,11 +60,19 @@ make_flags <- function(y){
             matrix(nrow=nrow(y)) 
   return(flags)
 }
+```
+
+The function `calc_func_per_class` generate `flags` from the vector `y` and then uses each column to perform an operation on `X` for every element in the corresponding class.
+```{r}
 # Calculates a function (usually mean or sd) for all classes
 calc_func_per_class <- function(X, y, func){
   flags <- make_flags(y)
   return(t(apply(flags, 2, function(f) apply(X[f, ], 2, func))))
 }
+```
+
+This is a faster version of the classic `dmvnorm` leveraging  cholesky decomposition and computations in the log scale.
+```{r}
 # Calculates density of a gaussian
 gaussian_density <- function(x, mu, sigma, log=FALSE, precision=FALSE){
   # If precision=TRUE, we're provided with precision matrix, which is the inverse
@@ -201,24 +91,24 @@ gaussian_density <- function(x, mu, sigma, log=FALSE, precision=FALSE){
   }
   return(value[[1]])
 }
-# Fastest known pure-R way to compute means across dimensions. See my helper Rmd with benchmarks
+```
+
+Fastest known pure-R way to compute means across dimensions.
+```{r}
 center_matrix <- function(A){
   return(A - rep(1, nrow(A)) %*% t(colMeans(A)))
 }
 ```
 
 # Binary Dataset Generation
-### Settings for Data Creation
+Generate data from two multivariate gaussian distributions with similar means and same variance-covariance.
+Decide the number of data points for each class, the mean and the variance-covariance matrix.
 ```{r}
-# Settings
-n1 <- 100
-n2 <- 100
-m1 <- c(6, 6)
-m2 <- c(-1, 1)
-s1 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
-s2 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
+n1 <- 100; m1 <- c(6, 6);  s1 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
+n2 <- 100; m2 <- c(-1, 1); s2 <- matrix(c(1, 0, 0, 10), nrow=2, ncol=2)
 ```
-### Data Generating Function
+
+Then define the data-generating function.
 ```{r}
 generate_binary_data <- function(n1, n2, m1, s1, m2, s2){
   # x1, x2 and y for both classes (both 0,1 and -1,1 will be created for convenience)
@@ -230,12 +120,16 @@ generate_binary_data <- function(n1, n2, m1, s1, m2, s2){
   data <- data.frame(rbind(class1, class2), y, y2)
   return(data)
 }
-# Generate reproducible data
+```
+
+Finally, we generate data with a random seed for reproducibility.
+```{r}
 set.seed(123)
 data <- generate_binary_data(n1, n2, m1, s1, m2, s2)
 X <- data %>% dplyr::select(-y, -y2) %>% as.matrix
 y <- data %>% dplyr::select(y) %>% as.matrix
 ```
+
 ### Data Appearance
 ```{r}
 plot_dataset <- function(data){
@@ -284,7 +178,7 @@ fda <- function(X, y){
 ```
 
 ### FDA Plot Method
-
+This method will plot the dataset, the embedded dataset, the embedding vector $w$, the mean of the whole dataset, and the mean for each class.
 ```{r}
 plot.FDA <- function(x, y=NULL, ...){
   # Find unit vector of w and take dot product
@@ -308,12 +202,17 @@ plot.FDA <- function(x, y=NULL, ...){
     wdf <- data.frame(x=x$sol[1], y=x$sol[2], x0=c(0.0), y0=c(0.0))
     # Plot
     p <- ggplot() + 
-          geom_point(data=data.frame(x$X, x$y), aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2) + 
-          geom_point(data=dfclassmeans, aes(x=X1, y=X2, color=as_factor(y)), shape=3, size=8, show.legend=FALSE) + 
+          geom_point(data=data.frame(x$X, x$y), 
+                     aes(x=X1, y=X2, color=as_factor(y)), alpha=0.2) + 
+          geom_point(data=dfclassmeans, 
+                     aes(x=X1, y=X2, color=as_factor(y)),
+                     shape=3, size=8, show.legend=FALSE) + 
           geom_point(data=datamean, aes(x=x, y=y), size=8, shape=3, color="black") +
           geom_point(data=dfembed, aes(x=x1, y=x2, color=as_factor(y))) + 
-          geom_segment(data=wdf, aes(x=x0, y=y0, xend=x, yend=y, color="w"), 
-                       arrow = arrow(length=unit(0.15, "inches")), color="darkred", size=1)
+          geom_segment(data=wdf, 
+                       aes(x=x0, y=y0, xend=x, yend=y, color="w"), 
+                       arrow = arrow(length=unit(0.15, "inches")), 
+                       color="darkred", size=1)
   }
   p + 
     labs(color="Class", title="FDA-Embedded Dataset", x="X1", y="X2") + 
@@ -321,7 +220,7 @@ plot.FDA <- function(x, y=NULL, ...){
 }
 ```
 
-### Results
+We can now look at the results of our optimization.
 ```{r}
 fda_object <- fda(X, y)
 plot(fda_object)
@@ -351,8 +250,9 @@ naive_bayes <- function(X, y){
 ```{r}
 predict.naive_bayes <- function(x, xtest){
   # for every test point (row of xtest), want to calculate the density value for
-  # every class, and pick the highest one. Let's instantiate a matrix of the correct dimensions.
-  table <- matrix(0, nrow=nrow(xtest), ncol=nrow(x$means))  # number of test points times n classes
+  # every class, and pick the highest one. 
+  # Instantiate matrix of correct dimensions.
+  table <- matrix(0, nrow=nrow(xtest), ncol=nrow(x$means))
   # calculate priors from data
   priors <- log(apply(make_flags(x$y), 2, function(f) length(x$y[f, ]) / length(x$y)))
   # need two for loops unfortunately
@@ -372,6 +272,7 @@ predict.naive_bayes <- function(x, xtest){
 ```
 
 ### Plot Method for Naive Bayes
+This will plot the two classes and will predict points on a grid, to show the decision boundary.
 ```{r}
 plot.naive_bayes <- function(x, y=NULL, ngrid=75, ...){
   if (ncol(x$X) > 2) {
@@ -396,11 +297,9 @@ plot.naive_bayes <- function(x, y=NULL, ngrid=75, ...){
 }
 ```
 
-### Results
 ```{r}
 plot(naive_bayes(X, y))
 ```
-
 
 # Logistic Regression
 ### Mathematical Setting
@@ -457,7 +356,7 @@ where the step size $\gamma$ can either be chosen small.
 ### Gradient Ascent (MAP, Ridge Regularization)
 The update takes the form
 $$
-\vbeta_{k+1}\leftarrow  \vbeta_k + \gamma_k\left[\sigma_{\vbeta}^2X^\top(\vy - \sigma(X\vbeta_k)) - \vbeta_k\right]
+\vbeta_{k+1}\leftarrow  \vbeta_k + \gamma\left[\sigma_{\vbeta}^2X^\top(\vy - \sigma(X\vbeta_k)) - \vbeta_k\right]
 $$
 
 ### Newton's Method (MLE, No Regularization)
@@ -481,6 +380,7 @@ $$
 $$
 
 ### Implementations of the Optimization Methods
+Below we define gradient ascent and newton's method both for the MLE and MAP cases.
 
 ```{r}
 sigmoid <- function(x) 1.0 / (1.0 + exp(-x))
@@ -491,7 +391,9 @@ grad_ascent <- function(beta, niter=100, gamma=0.001, cost="MLE", sigmab=1.0){
   if (cost=="MLE"){
     for (i in 1:niter) beta <- beta + gamma * t(X) %*% (y - sigmoid(X %*% beta))
   } else if (cost=="MAP"){
-    for (i in 1:niter) beta <- beta + gamma*(sigmab^2*t(X) %*% (y - sigmoid(X %*% beta)) - beta)
+    for (i in 1:niter) {
+      beta <- beta + gamma*(sigmab^2*t(X) %*% (y - sigmoid(X %*% beta)) - beta)
+    }
   }
   return(beta)
 }
@@ -534,11 +436,7 @@ logistic_regression <- function(X, y, cost="MLE", method="BFGS", sigmab=1.0, nit
   if      (cost == "MLE") costfunc <- mle_cost
   else if (cost == "MAP") costfunc <- map_cost
   # Use selected method for selected cost function
-  if      (method=="BFGS") {
-    result <- optim(par=start, fn=costfunc, method=method, hessian = TRUE)
-    sol <- result$par
-    hessian <- result$hessian
-  }
+  if      (method=="BFGS")   sol <- optim(par=start, fn=costfunc, method=method)$par
   else if (method=="GA")     sol <- grad_ascent(start, niter, gamma, cost, sigmab)
   else if (method=="NEWTON") sol <- newton_method(start, niter, alpha, cost, sigmab)
   # Laplace only works with MAP, not MLE
@@ -547,8 +445,8 @@ logistic_regression <- function(X, y, cost="MLE", method="BFGS", sigmab=1.0, nit
   second <- t(X) %*% diag(drop(sigmoid(X %*% sol)*(1-sigmoid(X %*% sol)))) %*% X
   precision <- first + second
   # Build S3 object and return it
-  lr <- list(X=X, y=y, beta=sol, cost=cost, method=method, prec=precision, costfunc=costfunc,
-             hessian=hessian)
+  lr <- list(X=X, y=y, beta=sol, cost=cost, method=method, 
+             prec=precision, costfunc=costfunc)
   class(lr) <- "logistic_regression"
   return(lr)
 }

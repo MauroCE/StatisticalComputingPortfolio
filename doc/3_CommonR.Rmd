@@ -1,5 +1,5 @@
 ---
-title: "CommonR"
+title: "Common R"
 output:
   html_document:
     toc: true

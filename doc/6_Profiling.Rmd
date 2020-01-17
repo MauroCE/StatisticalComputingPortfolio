@@ -1,14 +1,14 @@
 ---
 title: "Profiling Gaussian Processes"
-output: html_document
+output:
+  pdf_document: default
+  word_document: default
+always_allow_html: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-## Mathematical Formulas
-The derivation of Gaussian Process regression formulas are beyond the scope of this portfolio, however formulas are replicated here to aid understanding.
 
 ## Implementations
 ### Data Generation and Problem Settings
@@ -60,6 +60,7 @@ regression_function <- function(x){
 ```
 Now let's actually generate some data
 ```{r}
+set.seed(12345)
 # training data
 xtrain <- matrix(runif(ntrain, min=-5, max=5))
 ytrain <- regression_function(xtrain) + matrix(rnorm(ntrain, sd=sigma_n))
@@ -67,25 +68,25 @@ ytrain <- regression_function(xtrain) + matrix(rnorm(ntrain, sd=sigma_n))
 xtest <- matrix(seq(-5,5, len=ntest))
 ```
 ### Naive Vectorized Implementation
-The firt implementation that we look at is naive in the sense that it basically blindly copies the operations. This means that we invert $K + \sigma_n^2 I$ directly.
+The first implementation that we look at is naive in the sense that it basically blindly copies the operations. This means that we invert $K + \sigma_n^2 I$ directly.
 ```{r}
 source("gp_naive.R", keep.source = TRUE)
 profvis(result <- gp_naive(xtrain, ytrain, xtest, sigma_n, sigmasq))
 ```
 
-### Smart Implementation
+### Online Non-Vectorized Cholesky Implementation
 This implementation can also be used _online_. It is recommended in the "Gaussian Processes for Machine Learning" book.
 ```{r}
 source("gp_online.R", keep.source = TRUE)
 profvis(result_online <- gp_online(xtrain, ytrain, xtest, sigma_n, sigmasq))
 ```
 
-### Implementation using a vectorized kernel matrix
+### Online Vectorized-Kernel Cholesky Implementation
 We can see that most of the time is spent computing the kernel matrix. We can therefore find a faster way to compute it as follows
 ```{r}
 kernel_matrix_vectorized <- function(X, sigmasq, Y=NULL){
   if (is.null(Y)){
-    Y <- X  # TODO: This might be risky for big matrices. How does R copy work? Maybe split the code into two?
+    Y <- X
   }
   n <- nrow(X)
   m <- nrow(Y)
@@ -93,10 +94,6 @@ kernel_matrix_vectorized <- function(X, sigmasq, Y=NULL){
   Xnorm <- matrix(apply(X^2, 1, sum), n, m)
   Ynorm <- matrix(apply(Y^2, 1, sum), n, m, byrow=TRUE)
   XY <- tcrossprod(X, Y)
-  # TODO: In this case do we use median of XY? If we are using it for prediction
-  # I think sigmasq should be found only from training set, not from testing set.
-  # Therefore we should pass sigmasq as a parameter in this function, and should be calculated 
-  # beforehand.
   return(exp(-(Xnorm - 2*XY + Ynorm) / (2*sigmasq)))
 }
 ```
@@ -141,8 +138,9 @@ data.frame(x=xtest, t(mvrnorm(nprior_samples, rep(0, length=ntest), Kss))) %>%
 ### After seeing training data
 We only need to find the predicted mean and the predicted variance.
 ```{r}
-# Get predicitons. To predict noisy data just add sigma_n^2*diag(ncol(xtest)) to the covariance matrix
-# as implemented in the script `gp_completely_vectorized_noisy.R`.
+# Get predicitons. To predict noisy data just add sigma_n^2*diag(ncol(xtest)) 
+# to the covariance matrix as implemented in the script 
+# `gp_completely_vectorized_noisy.R`.
 results <- gp_completely_vectorized(xtrain, ytrain, xtest, sigma_n, sigmasq)
 
 gpmean <- results[[1]]
@@ -171,34 +169,34 @@ data.frame(x=xtest, t(mvrnorm(npost_samples, gpmean, gpvcov))) %>%
 One might wonder why in the function `kernel_matrix_vectorized()` we fill the matrix `Ynorm` by row. Afterall `R` works with column-major storage so this should be inefficient. One can compare filling in a matrix by row versus filling it by column and then taking the transpose in different cases:
 
 * Number of rows < Number of columns
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 nrows <- 100
-ncols <- 1000
+ncols <- 2000
 microbenchmark(
-  matrix(0, nrows, ncols, byrow=TRUE),
-  t(matrix(0, nrows, ncols))
+  rowwise=matrix(0, nrows, ncols, byrow=TRUE),
+  transpose=t(matrix(0, nrows, ncols))
   )
 ```
 * Number of rows = Number of columns
-```{r, eval=FALSE}
-nrows <- 1000
-ncols <- 1000
+```{r, eval=TRUE}
+nrows <- 2000
+ncols <- 2000
 microbenchmark(
-  matrix(0, nrows, ncols, byrow=TRUE),
-  t(matrix(0, nrows, ncols))
+  rowwise=matrix(0, nrows, ncols, byrow=TRUE),
+  transpose=t(matrix(0, nrows, ncols))
   )
 ```
 * Number of rows > Number of columns
-```{r, eval=FALSE}
-nrows <- 1000
+```{r, eval=TRUE}
+nrows <- 2000
 ncols <- 100
 microbenchmark(
-  matrix(0, nrows, ncols, byrow=TRUE),
-  t(matrix(0, nrows, ncols))
+  rowwise=matrix(0, nrows, ncols, byrow=TRUE),
+  transpose=t(matrix(0, nrows, ncols))
   )
 ```
 
-Generally, `byrow=TRUE` is faster, except when the number of rows is smaller than the number of columns. One could see if implementing an if-statement checking for `n<m` and then using `t()` rather than `byrow=TRUE` would lead to serious performance improvement.
+Generally, `byrow=TRUE` is faster.
 
 
 

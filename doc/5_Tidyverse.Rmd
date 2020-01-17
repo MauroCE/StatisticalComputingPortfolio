@@ -1,6 +1,9 @@
 ---
-title: "Tidyverse Portfolio: Spotify and Kaggle Data"
-output: html_document
+title: 'Tidyverse Portfolio: Spotify and Kaggle Data'
+output:
+  html_document:
+    df_print: paged
+always_allow_html: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -20,7 +23,8 @@ Import the spotify data an drop `index` column cause it contains redundant infor
 ```{r}
 spotify <- read_csv("top50.csv", col_names=c(
   "index", "Song", "Artist", "Genre", "BPM", "Energy", "Danceability",
-  "Loudness", "Liveness", "Valence", "Length", "Acousticness", "Speechiness", "Popularity"),
+  "Loudness", "Liveness", "Valence", "Length", "Acousticness", 
+  "Speechiness", "Popularity"),
   col_types=cols(
     index=col_double(),
     Song=col_factor(),
@@ -64,13 +68,17 @@ p
 We can also obtain an equivalent **interactive** version using `plotly` which makes it easier to understand when there are multiple variables.  Notice how "Dance Pop" and "Pop" are the most popular genres in the top 50 Spotify songs, and how Ed Sheeran dominates the "Pop" genre.
 ```{r}
 # First, create new dataframe where we re-order the factor
-spotify_ordered <- within(spotify, Genre <- factor(Genre, levels=names(sort(table(Genre), decreasing=TRUE))))
+spotify_ordered <- within(
+  spotify, 
+  Genre <- factor(Genre, levels=names(sort(table(Genre), decreasing=TRUE)))
+  )
 #forcats::fct_infreq(Genre)
 p <- ggplot(data=spotify_ordered) + 
   geom_bar(aes(x=Genre, fill=Artist)) + 
   coord_flip() + 
   theme(axis.text.x=element_text(size=12)) + 
-  labs(y="Number of Songs per Genre", title="Top 50 Spotify Songs by Genre by Artist", x="Genre") + 
+  labs(y="Number of Songs per Genre",
+       title="Top 50 Spotify Songs by Genre by Artist", x="Genre") + 
   theme(plot.title=element_text(hjust=0.5))
 ggplotly(p)
 ```
@@ -130,9 +138,9 @@ Want to use  `kaggle$Output` to extract the number of visualizations and the num
 kaggle %<>% 
   select(Output) %>% # Grab the `Output` column. It contains strings.
   transmute(
-    OutputVisualizations = as.numeric(str_extract(Output, "\\d+(?= vis)")), # digits before "vis"
-    OutputFiles = as.numeric(str_extract(Output, "\\d+(?= data fil)"))) %>% # digits before "data fil"
-  mutate_all(replace_na, 0) %>% # replace nan values with 0s in case nothing is outputted
+    OutputVisualizations = as.numeric(str_extract(Output, "\\d+(?= vis)")),
+    OutputFiles = as.numeric(str_extract(Output, "\\d+(?= data fil)"))) %>% 
+  mutate_all(replace_na, 0) %>% # replace NA with 0s in case nothing is outputted
   cbind(kaggle, .) %>% # bind these columns at the end of kaggle
   select(-Output)  # drop the Output column as it is useless now
 ```
@@ -160,21 +168,24 @@ We can see that among the scripts `markdown` outputs many more visualizations th
 
 Python seems to be the most utilized languages among the top-voted kernels. Let's see how this changes if we also group them by code type. Code type has two options `Script` or `Notebook`. Notice that we want to group by code type first, and then by language. Not the other way around.
 ```{r}
+title <- "Programming Language and File Type Popularity in Top-Voted Kaggle Kernels"
 kaggle %>% 
   group_by(`Code Type`, Language) %>% 
   count %>% 
   ggplot(aes(x=`Code Type`, y=n, color=Language, fill=Language, label=paste(n))) + 
     geom_bar(position="dodge", stat="identity", alpha=0.2) + 
-    labs(x="Submission File Type", y="Number of Kernels", 
-         title="Programming Language and File Type Popularity in Top-Voted Kaggle Kernels") + 
-    geom_text(size=5, position=position_dodge2(width=0.9), show.legend = FALSE, vjust=-0.2) 
+    labs(
+      x="Submission File Type", y="Number of Kernels", 
+      title=title) + 
+    geom_text(size=5, position=position_dodge2(width=0.9), 
+              show.legend = FALSE, vjust=-0.2) 
 ```
 
 We can also look at the tag frequency in the top-voted kaggle kernels.
 
 ```{r}
-# Get a dataframe with a column for every tag. Values in that column are 0 or 1s depending if
-# that kernel was tagged with it.
+# Get a dataframe with a column for every tag. Values in that column
+# are 0 or 1s depending if that kernel was tagged with it.
 tagcount <- kaggle  %>% 
     select(Tags) %>%  
     mutate(rn=row_number()) %>%    # Add a col with row indeces

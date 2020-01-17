@@ -19,14 +19,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 According to @sc1 reproducibility can be implemented by:
 
-* Organize files logically into *modules* and *packages*.
-* Use *version control* software.
-* Write human-readable *documentation*.
+* Organizing files logically into *modules* and *packages*.
+* Using *version control* software.
+* Writing human-readable *documentation*.
 
 Why is reproducibility important? 
 
 * If the research is reproducible, then the analysis and the methodology are clear.
-* A major building block of the scientific method is the reproducibility of experiements. If independent researchers are able to reproduce our results, this will 
+* A major building block of the scientific method is the reproducibility of experiements. If independent researchers are able to reproduce our results, this will validate much coding-based research. 
 
 #### Replication crisis
 **Replication crisis** refers to the difficulty or impossibility to reproduce scientific studies, which undermines their results since the reproducibility of experiments is an integral part of the scientific method. Methods to address the crisis include:
@@ -57,9 +57,8 @@ output:
     toc_float: true
     toc_depth: 4
 bibliography: bibliography.bib
-runtime: shiny
 nocite: |
-  @shiny, @turingway
+  @turingway
   ---
   ```
   the `output` field defines what type of document we want at the end (HTML, PDF, etc), `toc` stands for "table of contents" and in the YAML above we've allowed it to show headers up to 4 levels and to "float", i.e. to be always present at the side of the file, even when scrolling down through the document. 
@@ -95,21 +94,6 @@ To only display the output, one can use `{r, echo=FALSE}` to obtain
 ```{r, echo=FALSE}
 x <- matrix(1:6, 2, 3)
 dim(x)
-```
-
-The R markdown can be made interactive with Shiny, by adding the option `runtime: shiny` in the YAML file. Let's create a very basic data frame and then we will let the user decide the number of rows to display:
-
-```{r}
-m <- matrix(1:60, 20, 3)
-df <- data.frame(m)
-```
-Then we create the interactive plot:
-```{r, echo=FALSE}
-numericInput("rows", "How many rows?", 3)
-
-renderTable({
-  head(df, input$rows)
-})
 ```
 
 Below I'll work through the Computing Lab of Statistical Methods 1 given in Lecture 2.
@@ -186,21 +170,18 @@ The following function `cv` implements k-fold Cross Validation. It works by firs
 At this point, we can use the `cut()` function to create flags that signal to which of the `k` groups each row of the dataframe belongs to. After this, we go through a loop where we perform least squares on all the data except the current group of rows, and we test the result exactly on that hold-out group. 
 
 ```{r}
-# for testing purposes let's set a seed
 cv <- function(X, y, k){
   # K-fold cross validation. For leave-one-out set k to num of observations.
   # X should be a (d+1)*n matrix with d = num of features, n = numb of samples.
   # y should be 1*n target vector.
-  # Create a vector where errors will be stored. Length will be k
-  errors <- rep(0, k)
+  errors <- rep(0, k)  # errors will be stored here
   # First stack together X and y. y will be last row of X. Then transpose.
   xy <- t(rbind(X, y))
   # shuffle the rows
   xyshuffled <- xy[sample(nrow(xy)), ]
   # Create flags for the rows of xyshuffled to be divided into k folds
   folds <- cut(seq(1, nrow(xyshuffled)), breaks=k, labels=FALSE)
-  # Go through each fold and calculate train and test stuff
-  for(i in 1:k){
+  for(i in 1:k){ # Go through each fold
     # Find indeces of rows in the hold-out (test) group
     test_ind <- which(folds==i, arr.ind=TRUE)
     # Use such indeces to grab test data
@@ -219,8 +200,7 @@ cv <- function(X, y, k){
     # Add error to error list
     errors[i] <- e
   }
-  # Finally return the average error
-  return(mean(errors))
+  return(mean(errors)) # Finally return the average error
 }
 ```
 We can try this function using $10$ fold cross validation
@@ -233,20 +213,19 @@ cv(X, y, dim(X)[2])
 ```
 
 ## Removing Features
-We can evaluate leave-one-out cross validation on the dataset where one feature has been removed each time. The code would look similar to
+Evaluate leave-one-out CV on the dataset where one feature has been removed each time.
 ```{r}
-# There's dim(X)[1] features if we count also the bias feature
-errors <- rep(0, dim(X)[1])
-# Remove one feature at a time
-for (i in 1:dim(X)[1]){
+errors <- rep(0, dim(X)[1]) # There's dim(X)[1] features (with bias)
+for (i in 1:dim(X)[1]){     # Remove one feature at a time
   X <- X[-i, ]
   errors[i] <- cv(X, y, dim(X)[2])
 }
 errors
 ```
 The error increases because we are missing information about one of the features. We can plot the errors as follows
-```{r}
-plot(1:length(errors), errors, xlab="Features", xaxt = "n", main="CV errors with feature dropping", ylab="CV errors")
+```{r, fig.height=5, fig.width=8}
+plot(1:length(errors), errors, xlab="Features", xaxt = "n", 
+     main="CV errors with feature dropping", ylab="CV errors")
 labels <- names(df[1:8])
 labels[9] <- "bias"
 axis(1, at=1:length(errors), labels=labels)
