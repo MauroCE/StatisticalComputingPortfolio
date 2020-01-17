@@ -138,7 +138,6 @@ We only need to find the predicted mean and the predicted variance.
 ```{r}
 # Get predicitons. To predict noisy data just add sigma_n^2*diag(ncol(xtest)) 
 # to the covariance matrix as implemented in the script 
-# `gp_completely_vectorized_noisy.R`.
 results <- gp_completely_vectorized(xtrain, ytrain, xtest, sigma_n, sigmasq)
 
 gpmean <- results[[1]]
